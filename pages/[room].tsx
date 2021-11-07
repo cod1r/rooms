@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import dynamic from 'next/dynamic';
 export default function Room() {
 	const [peer, setPeer] = useState(null);
 	useEffect(() => {
@@ -11,7 +10,7 @@ export default function Room() {
 	let handleCall = () => {
 		navigator.mediaDevices.getUserMedia({audio:true}).then((stream) => {
 			let call = peer.call('234982304982342342342342423424', stream);
-			call.on('stream', (remoteStream) => {
+				call.on('stream', (remoteStream) => {
 			});
 		}).catch(err => console.error(err));
 		peer.on('call', (call) => {
@@ -25,7 +24,6 @@ export default function Room() {
 	return (
 		<div className='bg-red-700 h-full'>
 			<button onClick={handleCall}>CALL</button>
-
 		</div>
 	);
 }
