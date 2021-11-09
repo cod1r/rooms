@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import router from 'next/router';
 interface AuthProps {
-	close: () => {},
+	close: () => void,
 	register: boolean
 }
 export default function Auth(props : AuthProps) {
