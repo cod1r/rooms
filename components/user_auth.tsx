@@ -31,6 +31,7 @@ export default function Auth(props : AuthProps) {
 				// use router to push somewhere
 				console.log('authentication request status is 200');
 				authstates.setAuthenticated();
+				props.close();
 			}
 		});
 		setTimeout(() => controller.abort(), 5000);
