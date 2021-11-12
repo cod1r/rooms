@@ -1,32 +1,46 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import Auth from '../components/user_auth';
 import CreateRoomForm from './createroomform';
-export default function Header() {
-	let [register_form, setRegisterFormStatus] = useState(false);
-	let [login_form, setLoginFormStatus] = useState(false);
-	let [authenticated, setAuthenticated] = useState(false);
-	let [createroom, setCreateRoom] = useState(false);
-	useEffect(() => {
-		let controller = new AbortController();
-		fetch('api/authenticate', {
-			method: 'POST',
-			signal: controller.signal
-		}).then((res) => {
-			if (res.status == 200) {
-				setAuthenticated(true);
-			}
-		});
-		setTimeout(() => { controller.abort(); }, 5000);
-	}, []);
+import { AuthStates } from '../contexts/authstates';
+import router from 'next/router';
+export default function Header(props) {
+	let [register_form_status, setRegisterFormStatus] 	= useState(false);
+	let [login_form_status, setLoginFormStatus] 		= useState(false);
+	let authstates = useContext(AuthStates);
+	let [create_room_form, setCreateRoomForm] 			= useState(false);
+	let leave_room_handler = (e) => {
+		// fetch leave room api
+	}
 	return (
 		<div className='text-center'>
-			<h1 className='text-xl'>Audio Rooms</h1>
-			{	!authenticated ? <button className='m-1' onClick={() => setRegisterFormStatus(!register_form)}>register</button> : null}
-			{	!authenticated ? <button className='m-1' onClick={() => setLoginFormStatus(!login_form)}>login</button> : null}
-			{	register_form ? <Auth close={() => setRegisterFormStatus(!register_form)} register={true}/> : null}
-			{	login_form  ? <Auth close={() => setLoginFormStatus(!login_form)} register={false}/> : null}
-			{	authenticated ? <button className='p-2 m-2 bg-red-700 rounded-lg text-white' onClick={() => setCreateRoom(!createroom)}>Create Room</button> : null}
-			{	createroom ? <CreateRoomForm close={() => setCreateRoom(!createroom)} /> : null}
+			<h1 className='text-xl'><button onClick={() => router.push('/')}>Audio Rooms</button></h1>
+			{	!authstates.authenticated ? <button className='p-2 m-2 bg-red-700 rounded-lg text-white' onClick={() => setRegisterFormStatus(!register_form_status)}>register</button> : null}
+			{	!authstates.authenticated ? <button className='p-2 m-2 bg-red-700 rounded-lg text-white' onClick={() => setLoginFormStatus(!login_form_status)}>login</button> : null}
+			{	register_form_status ? <Auth close={() => setRegisterFormStatus(!register_form_status)} register_or_login={'register'}/> : null}
+			{	login_form_status  ? <Auth close={() => setLoginFormStatus(!login_form_status)} register_or_login={'login'}/> : null}
+			{	authstates.authenticated && !(authstates.in_room) ? 
+					<button 
+						className='p-2 m-2 bg-red-700 rounded-lg text-white' 
+						onClick={() => setCreateRoomForm(!create_room_form)}>Create Room</button> 
+							: 
+					null
+			}
+			{
+				authstates.in_room ?
+					<button 
+						className='p-2 m-2 bg-red-700 rounded-lg text-white' 
+						onClick={() => {authstates.setInRoom();}}>Leave room</button>
+							:
+					null
+			}
+			{	
+				(create_room_form) ? 
+					 <CreateRoomForm 
+						close={() => setCreateRoomForm(!create_room_form)} 
+						peerid={props.peerid}/> 
+					: null
+
+			}
 		</div>
 	);
 }

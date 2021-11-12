@@ -12,6 +12,8 @@ export default function Room() {
 		})();
 		let controller = new AbortController();
 		let timeoutID = setTimeout(() => { 
+			router.push('/');
+			authstates.setInRoom();
 			controller.abort(); 
 			console.log('timeout function called'); 
 		}, 5000);
@@ -33,12 +35,14 @@ export default function Room() {
 			let controller = new AbortController();
 			let timeoutid_2 = setTimeout(() => {
 				router.push('/');
+				authstates.setInRoom();
 				controller.abort();
 			}, 5000);
 			fetch('api/joinroom', {
 				method: 'POST',
 				body: JSON.stringify({
-					roomname: room
+					roomname: room,
+					id: peer.id
 				}),
 				signal: controller.signal
 			}).then(async (res) => {
@@ -46,6 +50,7 @@ export default function Room() {
 				if (res.status == 200) {
 					console.log('my peer id', peer.id);
 					let peerids = (await res.json())['peers'];
+					console.log('peers', peerids);
 					navigator.mediaDevices.getUserMedia({audio:true}).then((stream) => {
 						peerids.forEach((peerid) => {
 							if (peerid != peer.id) {

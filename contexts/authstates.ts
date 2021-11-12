@@ -1,4 +1,9 @@
+import React from 'react';
 let authstates = {
-	authorized : false
+	authenticated : false,
+	in_room : false,
+	setAuthenticated : () => {},
+	setInRoom : () => {}
 }
-export { authstates }
+let AuthStates = React.createContext(authstates);
+export {AuthStates, authstates}

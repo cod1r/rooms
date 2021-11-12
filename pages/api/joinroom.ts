@@ -21,20 +21,25 @@ export default function joinroom(req: NextApiRequest, res: NextApiResponse) {
 		}
 		// assuming passwords hash to a unique value
 		// otherwise we need to put email into the jwt token
-		let str_query = 'SELECT USERID FROM USERS WHERE password = ?';
+		let str_query = 'SELECT ID FROM USERS WHERE password = ?';
 		let cb = (results, params) => {
 			let str_query2 = 'INSERT INTO PersonInRoom (USERID, ROOMNAME, PEERID) VALUES (?, ?, ?)';
-			query(str_query2, [results[0]['USERID'], room_info['roomname'], room_info['id']]);
-
-			let str_query3 = 'SELECT PEERID FROM PersonInRoom WHERE ROOMNAME = ?';
 			let cb2 = (results2, params2) => {
-				params2['res'].statusCode = 200;
-				params2['res'].send({ peers: results2.map((result) => result['PEERID'])});
+				let str_query3 = 'SELECT PEERID FROM PersonInRoom WHERE ROOMNAME = ?';
+				let cb3 = (results3, params3) => {
+					params3['res'].statusCode = 200;
+					params3['res'].send({ peers: results3.map((result) => result['PEERID'])});
+				};
+				let params3 = {
+					res: params2['res']
+				}
+				query(str_query3, [room_info['id']], cb3, params3);
 			}
-			let params3 = {
+			let params2 = {
 				res: params['res']
 			}
-			query(str_query3, [room_info['id']], cb2, params3);
+			query(str_query2, [results[0]['ID'], room_info['roomname'], room_info['id']], cb2, params2);
+
 		};
 		let params = {
 			res: res
