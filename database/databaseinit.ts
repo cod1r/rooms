@@ -1,5 +1,5 @@
 import * as mysql from 'mysql';
-export function query(query : string, values : Array<string | number>, callback = (one, two) => {}, parameters = {}) {
+export async function query(query : string, values : Array<string | number>, callback = (one, two) => {}, parameters = {}) {
 	var connection = mysql.createConnection({
 	  host     : process.env.DB_HOST,
 	  user     : process.env.DB_USER,
@@ -10,10 +10,12 @@ export function query(query : string, values : Array<string | number>, callback 
 	connection.query(query, values, (err, results, fields) => {
 		if (err) {
 			console.log(err);
+			return false;
 		}
 		if (results) {
 			callback(results, parameters);
 		}
 	});
 	connection.end();
+	return true;
 }

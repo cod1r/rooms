@@ -20,7 +20,7 @@ export default function Home() {
 					<input onChange={(e) => setSearchValue(e.target.value)}className='outline-none border border-solid border-black p-2' type='text' name='search' value={search_val}/>
 				</form>
 			</div>
-			{ JSON.parse(sessionStorage.getItem('rooms'))['rooms']?.map((room) => room.includes(search_val) && search_val.length > 0 ? <div>{room}</div> : null)}
+			{ /*JSON.parse(sessionStorage.getItem('rooms'))['rooms']?.map((room) => room.includes(search_val) && search_val.length > 0 ? <div>{room}</div> : null)*/ }
 		</div>
 	)
 }

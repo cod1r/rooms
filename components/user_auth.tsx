@@ -13,6 +13,8 @@ export default function Auth(props : AuthProps) {
 	let controller = new AbortController();
 	let submitHandler = (e) => {
 		e.preventDefault();
+		let controller = new AbortController();
+		let timeoutId = setTimeout(() => controller.abort(), 5000);
 		fetch(props.register_or_login == 'register' ? '/api/register' : '/api/login', {
 			method: 'POST',
 			body: JSON.stringify(
@@ -28,13 +30,13 @@ export default function Auth(props : AuthProps) {
 			signal: controller.signal
 		}).then(async (res) => {
 			if (res.status == 200) {
+				clearTimeout(timeoutId);
 				// use router to push somewhere
 				console.log('authentication request status is 200');
 				authstates.setAuthenticated();
 				props.close();
 			}
 		});
-		setTimeout(() => controller.abort(), 5000);
 	}
 	let email_label = 
 					(<label>

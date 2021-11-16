@@ -3,7 +3,6 @@ import { AuthStates } from '../contexts/authstates';
 import router from 'next/router';
 interface CreateRoomFormProps {
 	close: () => void,
-	peerid: string
 }
 export default function CreateRoomForm(props : CreateRoomFormProps) {
 	let authstates = useContext(AuthStates);

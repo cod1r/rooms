@@ -3,6 +3,7 @@ import { query } from '../../database/databaseinit';
 import jwt from 'jsonwebtoken';
 export default function joinroom(req: NextApiRequest, res: NextApiResponse) {
 	let room_info = JSON.parse(req.body);
+	console.log('room_info', room_info);
 	let cookies = req.headers['cookie'].split(';');
 	// we should have one cookie as of right now
 	let token = '';
@@ -22,28 +23,17 @@ export default function joinroom(req: NextApiRequest, res: NextApiResponse) {
 		// assuming passwords hash to a unique value
 		// otherwise we need to put email into the jwt token
 		let str_query = 'SELECT ID FROM USERS WHERE password = ?';
-		let cb = (results, params) => {
+		query(str_query, [decoded['password']], (results, params) => {
 			let str_query2 = 'INSERT INTO PersonInRoom (USERID, ROOMNAME, PEERID) VALUES (?, ?, ?)';
-			let cb2 = (results2, params2) => {
+			query(str_query2, [results[0]['ID'], room_info['roomname'], room_info['id']], (results2, params2) => {
 				let str_query3 = 'SELECT PEERID FROM PersonInRoom WHERE ROOMNAME = ?';
-				let cb3 = (results3, params3) => {
+				query(str_query3, [room_info['roomname']], (results3, params3) => {
+					console.log('results', results3);
 					params3['res'].statusCode = 200;
 					params3['res'].send({ peers: results3.map((result) => result['PEERID'])});
-				};
-				let params3 = {
-					res: params2['res']
-				}
-				query(str_query3, [room_info['id']], cb3, params3);
-			}
-			let params2 = {
-				res: params['res']
-			}
-			query(str_query2, [results[0]['ID'], room_info['roomname'], room_info['id']], cb2, params2);
+				}, {res: params2['res']});
+			}, {res: params['res']});
 
-		};
-		let params = {
-			res: res
-		}
-		query(str_query, [decoded['password']], cb, params);
+		}, {res: res});
 	});
 }
