@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { query } from '../../database/databaseinit';
+import { pool } from '../../database/databaseinit';
 import jwt from 'jsonwebtoken';
 export default function joinroom(req: NextApiRequest, res: NextApiResponse) {
 	let room_info = JSON.parse(req.body);
@@ -19,21 +19,41 @@ export default function joinroom(req: NextApiRequest, res: NextApiResponse) {
 	jwt.verify(token, process.env.private_key, (err, decoded) => {
 		if (err) {
 			console.log(err);
+			return;
 		}
-		// assuming passwords hash to a unique value
-		// otherwise we need to put email into the jwt token
-		let str_query = 'SELECT ID FROM USERS WHERE password = ?';
-		query(str_query, [decoded['password']], (results, params) => {
-			let str_query2 = 'INSERT INTO PersonInRoom (USERID, ROOMNAME, PEERID) VALUES (?, ?, ?)';
-			query(str_query2, [results[0]['ID'], room_info['roomname'], room_info['id']], (results2, params2) => {
-				let str_query3 = 'SELECT PEERID FROM PersonInRoom WHERE ROOMNAME = ?';
-				query(str_query3, [room_info['roomname']], (results3, params3) => {
-					console.log('results', results3);
-					params3['res'].statusCode = 200;
-					params3['res'].send({ peers: results3.map((result) => result['PEERID'])});
-				}, {res: params2['res']});
-			}, {res: params['res']});
-
-		}, {res: res});
+		pool.getConnection((err, connection) => {
+			if (err) {
+				console.log(err);
+				return;
+			}
+			connection.query('SELECT ID FROM USERS WHERE password = ?', [decoded['password']], (err, results, fields) => {
+				if (err) {
+					console.log(err);
+					return;
+				}
+				connection.query('DELETE FROM PersonInRoom WHERE USERID = ?', [results[0]['ID']], (err1, results1, fields) => {
+					if (err) {
+						console.log(err);
+						return;
+					}
+				});
+				connection.query('INSERT INTO PersonInRoom (USERID, ROOMNAME, PEERID) VALUES (?, ?, ?)', 
+					[results[0]['ID'], room_info['roomname'], room_info['id']], (err, results1, fields) => {
+						if (err) {
+							console.log(err);
+							return;
+						}
+					});
+				connection.query('SELECT PEERID FROM PersonInRoom WHERE ROOMNAME = ?', [room_info['roomname']], (err, results, fields) => {
+					if (err) {
+						console.log(err);
+						return;
+					}
+					res.statusCode = 200;
+					res.send({peers: results.map(result => result['PEERID'])});
+				});
+			});
+			connection.release();
+		});
 	});
 }

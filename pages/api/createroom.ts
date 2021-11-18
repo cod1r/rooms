@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { query } from '../../database/databaseinit';
+import { pool } from '../../database/databaseinit';
 import jwt from 'jsonwebtoken';
 export default function createroom(req : NextApiRequest, res : NextApiResponse) {
 	let room_info = JSON.parse(req.body);
@@ -21,14 +21,13 @@ export default function createroom(req : NextApiRequest, res : NextApiResponse) 
 		}
 		// assuming passwords hash to a unique value
 		// otherwise we need to put email into the jwt token
-		let str_query = 'INSERT INTO ROOMS (RoomName) VALUES(?)';
-		let cb = (results, params) => {
-			params['res'].statusCode = 200;
-			params['res'].send();
-		};
-		let params = {
-			res: res
-		}
-		query(str_query, [room_info['roomname']], cb, params);
+		pool.query('INSERT INTO ROOMS (RoomName) VALUES(?)', [room_info['roomname']], (err, results, fields) => {
+			if (err) {
+				console.log(err);
+				return;
+			}
+			res.statusCode = 200;
+			res.send();
+		});
 	});
 }

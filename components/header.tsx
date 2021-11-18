@@ -8,9 +8,6 @@ export default function Header(props) {
 	let [login_form_status, setLoginFormStatus] 		= useState(false);
 	let authstates = useContext(AuthStates);
 	let [create_room_form, setCreateRoomForm] 			= useState(false);
-	let leave_room_handler = (e) => {
-		// fetch leave room api
-	}
 	return (
 		<div className='text-center'>
 			<h1 className='text-xl'><button onClick={() => router.push('/')}>Audio Rooms</button></h1>
@@ -35,14 +32,6 @@ export default function Header(props) {
 						className='p-2 m-2 bg-red-700 rounded-lg text-white' 
 						onClick={() => setCreateRoomForm(!create_room_form)}>Create Room</button> 
 							: 
-					null
-			}
-			{
-				authstates.in_room ?
-					<button 
-						className='p-2 m-2 bg-red-700 rounded-lg text-white' 
-						onClick={() => {authstates.setInRoom();}}>Leave room</button>
-							:
 					null
 			}
 			{	
