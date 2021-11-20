@@ -1,19 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { pool } from '../../database/databaseinit';
 import jwt from 'jsonwebtoken';
+import cookie from 'cookie';
 export default function leaveroom(req: NextApiRequest, res: NextApiResponse) {
-	let cookies = req.headers['cookie'].split(';');
-	// we should have one cookie as of right now
-	let token = '';
-	let first_equal_sign = false;
-	for (let character of cookies[0]) {
-		if (character == '=' && !first_equal_sign) {
-			first_equal_sign = true;
-		}
-		else if (first_equal_sign) {
-			token += character;
-		}
-	}
+	let cookies = cookie.parse(req.headers['cookie']);
+	let token = cookies['rememberme'];
 	jwt.verify(token, process.env.private_key, (err, decoded) => {
 		if (err) {
 			console.log(err);
