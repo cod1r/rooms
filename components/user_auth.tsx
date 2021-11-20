@@ -33,7 +33,7 @@ export default function Auth(props : AuthProps) {
 				clearTimeout(timeoutId);
 				// use router to push somewhere
 				console.log('authentication request status is 200');
-				authstates.setAuthenticated();
+				authstates.setAuthenticated(true);
 				props.close();
 			}
 		});

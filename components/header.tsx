@@ -8,6 +8,9 @@ export default function Header(props) {
 	let [login_form_status, setLoginFormStatus] 		= useState(false);
 	let authstates = useContext(AuthStates);
 	let [create_room_form, setCreateRoomForm] 			= useState(false);
+	useEffect(() => {
+		console.log(authstates);
+	}, [authstates]);
 	return (
 		<div className='text-center'>
 			<h1 className='text-xl'><button onClick={() => router.push('/')}>Audio Rooms</button></h1>

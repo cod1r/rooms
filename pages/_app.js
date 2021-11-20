@@ -10,6 +10,7 @@ function MyApp({ Component, pageProps }) {
 		console.log('_app useeffect here');
 		let controller = new AbortController();
 		let timeoutID = setTimeout(() => { 
+			router.push('/');
 			controller.abort(); 
 			console.log('timeout function called; cannot authenticate'); 
 		}, 5000);
