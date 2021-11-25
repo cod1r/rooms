@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { AuthStates } from '../contexts/authstates';
 import router from 'next/router';
 interface CreateRoomFormProps {
 	close: () => void,
 }
-export default function CreateRoomForm(props : CreateRoomFormProps) {
+export default function CreateRoomForm(props: CreateRoomFormProps) {
 	let authstates = useContext(AuthStates);
 	let [roomname, setRoomName] = useState('');
-	let create_room_handler = (e) => {
+	let create_room_handler = (e: React.FormEvent) => {
 		e.preventDefault();
 		let controller = new AbortController();
 		let timeoutID = setTimeout(() => controller.abort(), 5000);
@@ -23,24 +23,26 @@ export default function CreateRoomForm(props : CreateRoomFormProps) {
 				router.push(roomname);
 				props.close();
 				console.log('room created');
-				authstates.setInRoom();
+				authstates.setInRoom(true);
 			}
 		});
 	};
 	return (
-		<div className='absolute top-0 left-0 h-full w-full bg-black bg-opacity-50' onMouseDown={props.close}>
-			<div className='relative top-1/4 left-1/3 h-1/2 w-1/3 bg-white rounded-lg flex items-center justify-center' onMouseDown={(e) => e.stopPropagation()}>
-				<form className='w-full h-1/2'>
-					<label htmlFor='roomname' className='block'>room name</label>
-					<input 
-						onChange={(e) => setRoomName(e.target.value)}
-						className='outline-none border border-solid border-black focus:ring-2 focus:ring-red-400 rounded-lg p-1 w-4/5' 
-						type='text' 
-						name='roomname'
-						value={roomname}
-						placeholder='your room name'/>
-					<div className='m-2'>
-						<button className='p-2 text-white rounded-lg bg-red-700' onClick={create_room_handler}>create my room</button>
+		<div className='absolute top-0 left-0 h-full w-full bg-black bg-opacity-50 z-50' onMouseDown={props.close}>
+			<div className='relative top-1/4 left-1/3 h-1/2 w-1/3 bg-white rounded-sm flex items-center justify-center' onMouseDown={(e) => e.stopPropagation()}>
+				<form className='w-full h-1/2 text-center grid place-items-center'>
+					<div className='w-1/2'>
+						<label htmlFor='roomname' className='block'>room name</label>
+						<input 
+							onChange={(e) => setRoomName(e.target.value)}
+							className='outline-none border border-solid border-green-400 rounded-sm p-1 w-4/5' 
+							type='text' 
+							name='roomname'
+							value={roomname}
+							placeholder='your room name'/>
+						<div className='m-2'>
+							<button className='p-2 m-2 bg-green-400 rounded-sm text-white' onClick={create_room_handler}>create my room</button>
+						</div>
 					</div>
 				</form>
 			</div>

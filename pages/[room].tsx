@@ -108,7 +108,7 @@ export default function Room() {
 			<div className='text-center'>
 				{ 
 					Loaded !== null && authstates.authenticated === true ?
-					<button onClick={() => {
+					<button className='p-2 m-2 bg-green-400 rounded-sm text-white' onClick={() => {
 						router.push('/');
 					}}>Leave room</button>
 					:

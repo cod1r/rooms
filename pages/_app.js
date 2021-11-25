@@ -6,6 +6,7 @@ import router from 'next/router';
 function MyApp({ Component, pageProps }) {
 	let [authenticated, setAuthenticated] = useState(false);
 	let [in_room, setInRoom] = useState(false);
+	let [loaded, setLoaded] = useState(false);
 	useEffect(() => {
 		console.log('_app useeffect here');
 		let controller = new AbortController();
@@ -22,6 +23,7 @@ function MyApp({ Component, pageProps }) {
 			if (res.status == 200) {
 				console.log('_app rerendered');
 				setAuthenticated(true);
+				setLoaded(true);
 			}
 		}).catch((err) => console.error(err));
 	}, []);
@@ -33,8 +35,11 @@ function MyApp({ Component, pageProps }) {
 			setInRoom: (state) => setInRoom(state)
 		}}>
 			<div className='h-screen'>
-				<Header/>
-				<Component {...pageProps} />
+				{	loaded ?
+						<Component {...pageProps} />
+					:
+					null
+				}
 			</div>
 		</AuthStates.Provider>
 	)
