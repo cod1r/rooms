@@ -1,7 +1,6 @@
 import '../styles/globals.css'
 import React, { useState, useEffect } from 'react';
-import Header from '../components/header';
-import { AuthStates } from '../contexts/authstates';
+import { GLOBALS } from '../contexts/globals';
 import router from 'next/router';
 function MyApp({ Component, pageProps }) {
 	let [authenticated, setAuthenticated] = useState(false);
@@ -23,12 +22,12 @@ function MyApp({ Component, pageProps }) {
 			if (res.status == 200) {
 				console.log('_app rerendered');
 				setAuthenticated(true);
-				setLoaded(true);
 			}
+			setLoaded(true);
 		}).catch((err) => console.error(err));
 	}, []);
 	return (
-		<AuthStates.Provider value={{
+		<GLOBALS.Provider value={{
 			authenticated: authenticated,
 			in_room: in_room,
 			setAuthenticated: (state) => setAuthenticated(state),
@@ -41,7 +40,7 @@ function MyApp({ Component, pageProps }) {
 					null
 				}
 			</div>
-		</AuthStates.Provider>
+		</GLOBALS.Provider>
 	)
 }
 

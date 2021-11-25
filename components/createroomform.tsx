@@ -1,11 +1,11 @@
 import React, { useState, useContext } from 'react';
-import { AuthStates } from '../contexts/authstates';
+import { GLOBALS } from '../contexts/globals';
 import router from 'next/router';
 interface CreateRoomFormProps {
 	close: () => void,
 }
 export default function CreateRoomForm(props: CreateRoomFormProps) {
-	let authstates = useContext(AuthStates);
+	let glbl = useContext(GLOBALS);
 	let [roomname, setRoomName] = useState('');
 	let create_room_handler = (e: React.FormEvent) => {
 		e.preventDefault();
@@ -23,7 +23,7 @@ export default function CreateRoomForm(props: CreateRoomFormProps) {
 				router.push(roomname);
 				props.close();
 				console.log('room created');
-				authstates.setInRoom(true);
+				glbl.setInRoom(true);
 			}
 		});
 	};

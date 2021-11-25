@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useContext } from 'react'
-import { AuthStates } from '../contexts/authstates';
+import { GLOBALS } from '../contexts/globals';
 import Auth from '../components/user_auth';
 import CreateRoomForm from '../components/createroomform';
 import router from 'next/router';
@@ -7,7 +7,7 @@ import router from 'next/router';
 export default function Home() {
 	let [register_form_status, setRegisterFormStatus] 	= useState(false);
 	let [login_form_status, setLoginFormStatus] 		= useState(false);
-	let authstates = useContext(AuthStates);
+	let glbl = useContext(GLOBALS);
 	let [create_room_form, setCreateRoomForm] 			= useState(false);
 	return (
 		<div className='grid grid-cols-3 h-full'>
@@ -35,35 +35,46 @@ export default function Home() {
 			<div className='grid place-items-center'>
 				<div className='text-center'>
 					<div className='text-xl'>oidua</div>
-					{	!authstates.authenticated ? 
-						<button className='p-2 m-2 bg-green-400 rounded-sm text-white' onClick={() => setRegisterFormStatus(!register_form_status)}>
+					{	!glbl.authenticated ? 
+						<button className='p-2 m-2 bg-green-400 rounded-sm text-white font-bold' onClick={() => setRegisterFormStatus(!register_form_status)}>
 							register
 						</button> 
 							: 
 							null
 					}
-					{	!authstates.authenticated ? 
-							<button className='p-2 m-2 bg-green-400 rounded-sm text-white' onClick={() => setLoginFormStatus(!login_form_status)}>
+					{	!glbl.authenticated ? 
+							<button className='p-2 m-2 bg-green-400 rounded-sm text-white font-bold' onClick={() => setLoginFormStatus(!login_form_status)}>
 								login
 							</button> 
 								: 
 								null
 					}
-					{	authstates.authenticated && !authstates.in_room ? 
+					{	glbl.authenticated && !glbl.in_room ? 
 							<button 
-								className='p-2 m-2 bg-green-400 rounded-sm text-white' 
+								className='p-2 m-2 bg-green-400 rounded-sm text-white font-bold' 
 								onClick={() => setCreateRoomForm(!create_room_form)}>create room</button> 
 									: 
 							null
 					}
 				</div>
 			</div>
-			<div className='grid place-items-center'>
-				<div className='text-center'>
-					<div className='m-1 text-xl'>Search for rooms/people</div>
-					<button onClick={() => router.push('/search')}className='bg-green-400 text-white p-2 m-2 rounded-sm'>search</button>
+			{ glbl.authenticated ?
+				<div className='grid place-items-center'>
+					<div className='text-center'>
+						<div className='m-1 text-xl'>Search for rooms/people</div>
+						<button onClick={() => router.push('/search')} className='font-bold bg-green-400 text-white p-2 m-2 rounded-sm'>search</button>
+					</div>
 				</div>
-			</div>
+				:
+				<div className='grid place-items-center'>
+					<div className='text-center'>
+						<div className='break-words text-md'>
+							In order to join rooms or interact with other people, 
+							please register or log in.
+						</div>
+					</div>
+				</div>
+			}
 		</div>
 	);
 }

@@ -1,12 +1,12 @@
 import { useState, useEffect, useContext } from 'react';
 import router from 'next/router';
-import { AuthStates } from '../contexts/authstates';
+import { GLOBALS } from '../contexts/globals';
 interface AuthProps {
 	close: () => void,
 	register_or_login: string
 }
 export default function Auth(props : AuthProps) {
-	let authstates = useContext(AuthStates);
+	let glbl = useContext(GLOBALS);
 	let [username, setUsername] = useState('');
 	let [password, setPassword] = useState('');
 	let [email, setEmail] = useState('');
@@ -33,7 +33,7 @@ export default function Auth(props : AuthProps) {
 				clearTimeout(timeoutId);
 				// use router to push somewhere
 				console.log('authentication request status is 200');
-				authstates.setAuthenticated(true);
+				glbl.setAuthenticated(true);
 				props.close();
 			}
 		});
@@ -42,7 +42,7 @@ export default function Auth(props : AuthProps) {
 					(<label>
 						<div>Email</div>
 						<input 
-							className='shadow-md focus:ring-2 focus:ring-red-400 w-1/2 rounded-lg outline-none p-3 m-2' 
+							className='border border-solid border-green-400 w-1/2 rounded-sm outline-none p-3 m-2' 
 							type='email' 
 							placeholder='Email' 
 							name='email'
@@ -51,37 +51,42 @@ export default function Auth(props : AuthProps) {
 					</label>);
 	return (
 		<div className='absolute top-0 left-0 bg-black bg-opacity-50 h-screen w-full' onMouseDown={() => props.close()}>
-			<div className='relative h-1/2 w-1/3 bg-white top-1/4 left-1/3 rounded-lg flex items-center justify-center' onMouseDown={(e) => e.stopPropagation()}>
-				<form className='w-full'>
-					{ props.register_or_login == 'register' ? email_label : null}
-					<label className=''>
-						<div className=''>Username</div>
-						<input 
-							className='shadow-md focus:ring-2 focus:ring-red-400 w-1/2 rounded-lg outline-none p-3 m-2' 
-							type='text' 
-							placeholder='Username' 
-							name='username'
-							value={username}
-							onChange={(e) => setUsername(e.target.value)}/>
-					</label>
-					<label className=''>
-						<div className=''>Password</div>
-						<input 
-							className='shadow-md focus:ring-2 focus:ring-red-400 w-1/2 rounded-lg outline-none p-3 m-2' 
-							type='password' 
-							placeholder='Password' 
-							name='password'
-							value={password}
-							onChange={(e) => setPassword(e.target.value)}/>
-					</label>
-					<div>
-						<button 
-							className='h-1/2 w-1/4 p-2 rounded-lg bg-red-600' 
-							onClick={submitHandler}>
-							<div className='font-bold text-white'>Submit</div>
-						</button>
+			<div className='relative h-1/2 w-1/3 bg-white top-1/4 left-1/3 rounded-sm flex items-center justify-center' onMouseDown={(e) => e.stopPropagation()}>
+				<form className='relative z-10 w-full grid place-items-center'>
+					<div className='text-center w-full'>
+						{ props.register_or_login == 'register' ? email_label : null}
+						<label className=''>
+							<div className=''>Username</div>
+							<input 
+								className='border border-solid border-green-400 w-1/2 rounded-sm outline-none p-3 m-2' 
+								type='text' 
+								placeholder='Username' 
+								name='username'
+								value={username}
+								onChange={(e) => setUsername(e.target.value)}/>
+						</label>
+						<label className=''>
+							<div className=''>Password</div>
+							<input 
+								className='border border-solid border-green-400 w-1/2 rounded-sm outline-none p-3 m-2' 
+								type='password' 
+								placeholder='Password' 
+								name='password'
+								value={password}
+								onChange={(e) => setPassword(e.target.value)}/>
+						</label>
+						<div>
+							<button 
+								className='p-2 rounded-sm bg-green-400' 
+								onClick={submitHandler}>
+								<div className='font-bold text-white'>Submit</div>
+							</button>
+						</div>
 					</div>
 				</form>
+				<button 
+					className='absolute top-0 right-0 left-4/5 bottom-4/5 m-1 z-20 rounded-sm bg-green-400 text-white p-1 font-bold' 
+					onClick={() => props.close()}>close</button>
 			</div>
 		</div>
 	);

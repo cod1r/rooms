@@ -28,6 +28,8 @@ export default function authenticate(req : NextApiRequest, res : NextApiResponse
 		});
 	}
 	else {
-		console.log('req headers:', req.headers);
+		console.log('no cookie in headers, req headers:', req.headers);
+		res.statusCode = 401;
+		res.send();
 	}
 }

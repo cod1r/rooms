@@ -1,8 +1,8 @@
 import { useEffect, useState, useContext } from 'react';
 import router from 'next/router';
-import { AuthStates } from '../contexts/authstates';
+import { GLOBALS } from '../contexts/globals';
 export default function Room() {
-	let authstates = useContext(AuthStates);
+	let glbl = useContext(GLOBALS);
 	let [Loaded, setLoaded] = useState(false);
 	let [mediastream, setmediastream] = useState(null);
 	let [peer, setPeer] = useState(null);
@@ -16,9 +16,9 @@ export default function Room() {
 	}, []);
 
 	useEffect(() => {
-		console.log('[room] useeffect here; authenticated:', authstates.authenticated);
-		if (authstates.authenticated && peer !== null) {
-			authstates.setInRoom(true);
+		console.log('[room] useeffect here; authenticated:', glbl.authenticated);
+		if (glbl.authenticated && peer !== null) {
+			glbl.setInRoom(true);
 			let audio = new Audio();
 			setAudio(audio);
 			navigator.mediaDevices.getUserMedia({audio:true}).then((mediaStream) => {
@@ -79,7 +79,7 @@ export default function Room() {
 				}).then((res) => {
 					clearTimeout(timeoutID);
 					if (res.status == 200) {
-						authstates.setInRoom(false);
+						glbl.setInRoom(false);
 					}
 					else {
 						console.log('leave room status not 200');
@@ -87,7 +87,7 @@ export default function Room() {
 				});
 			};
 		}
-	}, [authstates.authenticated, peer]);
+	}, [glbl.authenticated, peer]);
 
 	useEffect(() => {
 			return () => {
@@ -107,7 +107,7 @@ export default function Room() {
 		<div className='h-full'>
 			<div className='text-center'>
 				{ 
-					Loaded !== null && authstates.authenticated === true ?
+					Loaded !== null && glbl.authenticated === true ?
 					<button className='p-2 m-2 bg-green-400 rounded-sm text-white' onClick={() => {
 						router.push('/');
 					}}>Leave room</button>
