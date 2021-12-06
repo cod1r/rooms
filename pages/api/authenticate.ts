@@ -2,9 +2,9 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import jwt from 'jsonwebtoken';
 import cookie from 'cookie';
 import { pool } from '../../database/databaseinit';
-export default function authenticate(req : NextApiRequest, res : NextApiResponse) {
-	console.log('auth api called');
+export default function authenticate(req: NextApiRequest, res: NextApiResponse) {
 	if ('cookie' in req.headers) {
+		console.log('cookie present');
 		let cookies = cookie.parse(req.headers['cookie']);
 		let token = cookies['rememberme'];
 		jwt.verify(token, process.env.private_key, (err, decoded) => {
@@ -18,8 +18,7 @@ export default function authenticate(req : NextApiRequest, res : NextApiResponse
 					return;
 				}
 				if (results.length > 0) {
-					res.statusCode = 200;
-					res.send();
+					res.status(200).json({authenticated: true});
 				}
 				else {
 					console.log('results', results);
@@ -29,7 +28,6 @@ export default function authenticate(req : NextApiRequest, res : NextApiResponse
 	}
 	else {
 		console.log('no cookie in headers, req headers:', req.headers);
-		res.statusCode = 401;
-		res.send();
+		res.status(401).json({authenticated: false});
 	}
 }

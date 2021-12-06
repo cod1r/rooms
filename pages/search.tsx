@@ -15,11 +15,6 @@ export default function Search() {
 	}
 	return (
 		<div className='text-center'>
-			<div>
-				<button 
-					className='bg-green-400 rounded-sm p-2 m-2 text-white' 
-					onClick={() => router.push('/')}>home</button>
-			</div>
 			<select 
 				defaultValue={option} 
 				className='outline-none border border-solid border-green-400 m-5 p-2 rounded-sm' 

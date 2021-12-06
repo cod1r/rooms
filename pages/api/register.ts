@@ -12,21 +12,19 @@ export default function register(req : NextApiRequest, res : NextApiResponse) {
 										console.log(err);
 										return;
 									}
-									if (results) {
-										res.statusCode = 200;
-										jwt.sign(
-											{ username: credentials.username, password: hash }, 
-											process.env.private_key, 
-											(err, token) => {
-												if (err) {
-													console.log(err);
-													return;
-												}
-												res.setHeader('Set-Cookie', `rememberme=${token}; Max-Age=${60*60*24*365}`);
-												res.send();
+									res.statusCode = 200;
+									jwt.sign(
+										{ username: credentials.username, password: hash }, 
+										process.env.private_key, 
+										(err, token) => {
+											if (err) {
+												console.log(err);
+												return;
 											}
-										);
-									}
+											res.setHeader('Set-Cookie', `rememberme=${token}; Max-Age=${60*60*24*365}`);
+											res.send();
+										}
+									);
 								}
 		);
 	});

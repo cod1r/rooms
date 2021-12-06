@@ -10,9 +10,13 @@ export default function Auth(props : AuthProps) {
 	let [username, setUsername] = useState('');
 	let [password, setPassword] = useState('');
 	let [email, setEmail] = useState('');
-	let controller = new AbortController();
-	let submitHandler = (e) => {
+	let [error, setError] = useState('');
+	let submitHandler = (e: React.FormEvent) => {
 		e.preventDefault();
+		if (props.register_or_login === 'register' && (username.length === 0 || password.length < 8)) {
+			setError("Either username is empty or password is not long enough");
+			return;
+		}
 		let controller = new AbortController();
 		let timeoutId = setTimeout(() => controller.abort(), 5000);
 		fetch(props.register_or_login == 'register' ? '/api/register' : '/api/login', {
@@ -31,16 +35,16 @@ export default function Auth(props : AuthProps) {
 		}).then(async (res) => {
 			if (res.status == 200) {
 				clearTimeout(timeoutId);
-				// use router to push somewhere
 				console.log('authentication request status is 200');
 				glbl.setAuthenticated(true);
+				router.push('/home');
 				props.close();
 			}
 		});
 	}
 	let email_label = 
 					(<label>
-						<div>Email</div>
+						<div>Email <i>(Optional)</i></div>
 						<input 
 							className='border border-solid border-green-400 w-1/2 rounded-sm outline-none p-3 m-2' 
 							type='email' 
@@ -50,8 +54,8 @@ export default function Auth(props : AuthProps) {
 							onChange={(e) => setEmail(e.target.value)}/>
 					</label>);
 	return (
-		<div className='absolute top-0 left-0 bg-black bg-opacity-50 h-screen w-full' onMouseDown={() => props.close()}>
-			<div className='relative h-1/2 w-1/3 bg-white top-1/4 left-1/3 rounded-sm flex items-center justify-center' onMouseDown={(e) => e.stopPropagation()}>
+		<div className='absolute top-0 left-0 bg-black grid place-items-center bg-opacity-50 h-screen w-full' onMouseDown={() => props.close()}>
+			<div className='relative h-1/2 w-1/4 bg-white rounded-sm flex items-center justify-center' onMouseDown={(e) => e.stopPropagation()}>
 				<form className='relative z-10 w-full grid place-items-center'>
 					<div className='text-center w-full'>
 						{ props.register_or_login == 'register' ? email_label : null}
@@ -83,6 +87,7 @@ export default function Auth(props : AuthProps) {
 							</button>
 						</div>
 					</div>
+					<div className='text-sm break-words w-3/4 text-center'>{error}</div>
 				</form>
 				<button 
 					className='absolute top-0 right-0 left-4/5 bottom-4/5 m-1 z-20 rounded-sm bg-green-400 text-white p-1 font-bold' 

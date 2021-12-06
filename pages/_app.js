@@ -2,6 +2,7 @@ import '../styles/globals.css'
 import React, { useState, useEffect } from 'react';
 import { GLOBALS } from '../contexts/globals';
 import router from 'next/router';
+import Header from '../components/header';
 function MyApp({ Component, pageProps }) {
 	let [authenticated, setAuthenticated] = useState(false);
 	let [in_room, setInRoom] = useState(false);
@@ -19,11 +20,17 @@ function MyApp({ Component, pageProps }) {
 			signal: controller.signal
 		}).then(async (res) => {
 			clearTimeout(timeoutID);
-			if (res.status == 200) {
-				console.log('_app rerendered');
+			if (res.status === 200) {
 				setAuthenticated(true);
+				if (router.pathname === '/') {
+					await router.push('/home');
+				}
+				setLoaded(true);
 			}
-			setLoaded(true);
+			else {
+				router.push('/');
+				setLoaded(true);
+			}
 		}).catch((err) => console.error(err));
 	}, []);
 	return (
@@ -35,7 +42,12 @@ function MyApp({ Component, pageProps }) {
 		}}>
 			<div className='h-screen'>
 				{	loaded ?
+					<>
+						{
+							authenticated && !in_room ? <Header/> : null
+						}
 						<Component {...pageProps} />
+					</>
 					:
 					null
 				}

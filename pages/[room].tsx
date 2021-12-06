@@ -7,6 +7,7 @@ export default function Room() {
 	let [mediastream, setmediastream] = useState(null);
 	let [peer, setPeer] = useState(null);
 	let [audio_obj, setAudio] = useState(null);
+	let [users, setUsers] = useState(null);
 
 	useEffect(() => {
 		(async () => {
@@ -42,8 +43,11 @@ export default function Room() {
 						clearTimeout(timeoutid_2);
 						if (res.status == 200) {
 							console.log('joinroom api status 200');
-							let peerids = (await res.json())['peers'];
-							console.log('peers', peerids);
+							let users = await res.json();
+							setUsers(Object.keys(users));
+							console.log('peers', users);
+							// TODO: based on how we are reassigning the audio's
+							// srcobject, we can only hear one person at a time.
 							peer.on('call', (call) => {
 								call.answer(mediaStream);
 								console.log('somebody called me');
@@ -53,7 +57,7 @@ export default function Room() {
 									audio.play();
 								});
 							});
-							peerids.forEach((peerid) => {
+							Object.values(users).forEach((peerid) => {
 								if (peerid != id) {
 									console.log('calling', peerid);
 									let call = peer.call(peerid, mediaStream);
@@ -104,12 +108,12 @@ export default function Room() {
 		}
 	}, [audio_obj]);
 	return (
-		<div className='h-full'>
-			<div className='text-center'>
+		<div className='h-full bg-gradient-to-br from-blue-400 to-green-400'>
+			<div className='text-center bg-white'>
 				{ 
 					Loaded !== null && glbl.authenticated === true ?
 					<button className='p-2 m-2 bg-green-400 rounded-sm text-white' onClick={() => {
-						router.push('/');
+						router.push('/home');
 					}}>Leave room</button>
 					:
 					'Loading...'

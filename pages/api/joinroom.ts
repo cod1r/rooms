@@ -36,14 +36,18 @@ export default function joinroom(req: NextApiRequest, res: NextApiResponse) {
 								return;
 							}
 						});
-					connection.query('SELECT PEERID FROM PersonInRoom WHERE ROOMNAME = ?', [room_info['roomname']], (err, results, fields) => {
-						if (err) {
-							console.log(err);
-							return;
-						}
-						res.statusCode = 200;
-						res.send({peers: results.map(result => result['PEERID'])});
-					});
+					connection.query('SELECT USERNAME, PEERID FROM PersonInRoom INNER JOIN USERS ON PersonInRoom.USERID = USERS.ID WHERE ROOMNAME = ?', 
+						[room_info['roomname']], 
+						(err, results, fields) => {
+							if (err) {
+								console.log(err);
+								return;
+							}
+							res.statusCode = 200;
+							let users = {};
+							results.forEach((result) => users[result['USERNAME']] = result['PEERID']);
+							res.send(users);
+						});
 				});
 				connection.release();
 			});
