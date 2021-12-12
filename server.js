@@ -20,8 +20,8 @@ app.prepare().then(() => {
 		const { pathname, query } = parsedUrl
 
 		handle(req, res, parsedUrl)
-	}).listen(3000, (err) => {
+	}).listen(3001, (err) => {
 		if (err) throw err;
-		console.log('> Ready on https://localhost:3000');
+		console.log('> Ready on https://localhost:3001');
 	});
 });

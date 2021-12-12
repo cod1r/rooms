@@ -1,10 +1,8 @@
 import React, { useState, useContext } from 'react';
 import { GLOBALS } from '../contexts/globals';
 import router from 'next/router';
-interface CreateRoomFormProps {
-	close: () => void,
-}
-export default function CreateRoomForm(props: CreateRoomFormProps) {
+
+export default function CreateRoomForm() {
 	let glbl = useContext(GLOBALS);
 	let [roomname, setRoomName] = useState('');
 	let create_room_handler = (e: React.FormEvent) => {
@@ -21,15 +19,15 @@ export default function CreateRoomForm(props: CreateRoomFormProps) {
 			clearTimeout(timeoutID);
 			if (res.status == 200) {
 				router.push(roomname);
-				props.close();
 				console.log('room created');
 				glbl.setInRoom(true);
 			}
 		});
 	};
 	return (
-		<div className='absolute top-0 left-0 h-full w-full bg-black bg-opacity-50 z-50' onMouseDown={props.close}>
-			<div className='relative top-1/4 left-1/3 h-1/2 w-1/3 bg-white rounded-sm flex items-center justify-center' onMouseDown={(e) => e.stopPropagation()}>
+			<div 
+				className='mt-1 h-1/3 w-1/4 bg-white rounded-sm flex items-center justify-center' 
+				onMouseDown={(e) => e.stopPropagation()}>
 				<form className='w-full h-1/2 text-center grid place-items-center'>
 					<div className='w-1/2'>
 						<label htmlFor='roomname' className='block'>room name</label>
@@ -46,6 +44,5 @@ export default function CreateRoomForm(props: CreateRoomFormProps) {
 					</div>
 				</form>
 			</div>
-		</div>
 	);
 }

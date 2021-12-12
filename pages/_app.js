@@ -2,7 +2,6 @@ import '../styles/globals.css'
 import React, { useState, useEffect } from 'react';
 import { GLOBALS } from '../contexts/globals';
 import router from 'next/router';
-import Header from '../components/header';
 function MyApp({ Component, pageProps }) {
 	let [authenticated, setAuthenticated] = useState(false);
 	let [in_room, setInRoom] = useState(false);
@@ -41,13 +40,9 @@ function MyApp({ Component, pageProps }) {
 			setInRoom: (state) => setInRoom(state)
 		}}>
 			<div className='h-screen'>
-				{	loaded ?
-					<>
-						{
-							authenticated && !in_room ? <Header/> : null
-						}
-						<Component {...pageProps} />
-					</>
+				{	
+					loaded ?
+					<Component {...pageProps} />
 					:
 					null
 				}

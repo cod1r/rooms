@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useContext } from 'react'
+import React, { useEffect, useState, useContext } from 'react'
 import { GLOBALS } from '../contexts/globals';
 import Auth from '../components/user_auth';
 import router from 'next/router';
@@ -30,7 +30,7 @@ export default function Home() {
 			<div className='grid grid-cols-4 grid-rows-3 bg-white p-5 rounded-md'>
 				<div className='row-start-1 col-span-4 grid place-items-center'>
 					<div>
-						<div className='text-4xl text-center'>heyxD</div>
+						<div className='text-5xl text-center font-bold'>heyxD</div>
 						<div className='text-xl'>audio rooms where you can</div>
 					</div>
 				</div>
@@ -66,27 +66,29 @@ export default function Home() {
 						Chill with ur buddies
 					</div>
 				</div>
-				<div className='text-center row-start-3 col-span-4 grid place-items-center'>
-					<div>
+				<div className='text-center row-start-3 col-span-4 grid grid-cols-2'>
 						{	!glbl.authenticated ? 
-							<button 
-								className='p-2 m-2 bg-green-400 rounded-sm text-white font-bold text-2xl' 
-								onClick={() => setRegisterFormStatus(!register_form_status)}>
-									register
-							</button> 
+							<div className='grid place-items-center'>
+								<button 
+									className='p-2 m-2 bg-green-400 rounded-sm text-white font-bold text-2xl h-1/2 w-1/2' 
+									onClick={() => setRegisterFormStatus(!register_form_status)}>
+										register
+								</button> 
+							</div>
 								: 
 								null
 						}
 						{	!glbl.authenticated ? 
-							<button 
-								className='p-2 m-2 bg-green-400 rounded-sm text-white font-bold text-2xl' 
-								onClick={() => setLoginFormStatus(!login_form_status)}>
-									login
-							</button> 
+								<div className='grid place-items-center'>
+									<button 
+										className='p-2 m-2 bg-green-400 rounded-sm text-white font-bold text-2xl h-1/2 w-1/2' 
+										onClick={() => setLoginFormStatus(!login_form_status)}>
+											login
+									</button> 
+								</div>
 									: 
 									null
 						}
-					</div>
 				</div>
 			</div>
 		</div>
