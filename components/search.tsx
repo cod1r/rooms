@@ -1,23 +1,32 @@
 import { useState } from 'react';
-import router from 'next/router';
+import Link from 'next/link';
 
 export default function Search() {
 	let [option, setOption] = useState('room');
 	let [results, setResults] = useState([]);
 	let [query, setQuery] = useState('');
 	let getData = (e: React.MouseEvent) => {
-		//fetch(option === 'user' ? 'api/getusers' : 'api/getrooms', {
-		//	method: 'GET',
-		//	body: JSON.stringify({
-		//		query: query
-		//	}),
-		//});
+		let controller = new AbortController();
+		let timeoutID = setTimeout(() => controller.abort(), 5000);
+		fetch(option === 'user' ? 'api/getusers' : 'api/getrooms', {
+			method: 'POST',
+			body: JSON.stringify({
+				query: query
+			}),
+			signal: controller.signal
+		}).then(async (res) => {
+			clearTimeout(timeoutID);
+
+			let { rooms } = await res.json();
+			
+			setResults(rooms);
+		});
 	}
 	return (
 		<div className='text-center'>
 			<select 
 				defaultValue={option} 
-				className='outline-none border border-solid border-green-400 m-5 p-2 rounded-sm' 
+				className='m-2 p-1 rounded-sm' 
 				onChange={
 						(e) => e.target.value === 'room' ? 
 						setOption('room') 
@@ -30,16 +39,24 @@ export default function Search() {
 			<div>
 				<input 
 					onChange={(e) => setQuery(e.target.value)} 
-					className='outline-none border border-solid border-green-400 p-2 rounded-sm' 
+					className='p-1 rounded-sm' 
 					type='search' 
 					placeholder={`search for a ${option}...`} 
 					value={query}/>
-				<button onClick={getData} className='text-white bg-green-400 rounded-sm p-2 m-2'>search</button>
+				<button onClick={getData} className='bg-white p-1 rounded-sm m-2'>search</button>
 			</div>
 			<div>
-				<div className='text-xl'>Results</div>
+				<div className='text-2xl text-white'>Results</div>
 				<ul>
-					{ results.map((result) => <li>{result}</li>) }
+					{ 
+						results.map((res, index) => 
+							<li key={index} className='text-white'>
+								<Link href={`/${res}`}>
+									<a className='hover:underline'>{res}</a>
+								</Link>
+							</li>
+						) 
+					}
 				</ul>
 			</div>
 		</div>

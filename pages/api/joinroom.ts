@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { pool } from '../../database/databaseinit';
 import jwt from 'jsonwebtoken';
 import cookie from 'cookie';
+// TODO: merge all sql queries into just one big nested SQL query
 export default function joinroom(req: NextApiRequest, res: NextApiResponse) {
 	console.log('joinroom api called');
 	if ('cookie' in req.headers) {
