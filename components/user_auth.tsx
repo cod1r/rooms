@@ -37,7 +37,7 @@ export default function Auth(props : AuthProps) {
 				clearTimeout(timeoutId);
 				console.log('authentication request status is 200');
 				glbl.setAuthenticated(true);
-				router.push('/home');
+				router.push(res.url);
 				props.close();
 			}
 		});
@@ -46,7 +46,7 @@ export default function Auth(props : AuthProps) {
 					(<label>
 						<div>Email <i>(Optional)</i></div>
 						<input 
-							className='border border-solid border-green-400 w-1/2 rounded-sm outline-none p-3 m-2' 
+							className='border border-black w-1/2 rounded-sm p-3 m-2' 
 							type='email' 
 							placeholder='Email' 
 							name='email'
@@ -55,14 +55,14 @@ export default function Auth(props : AuthProps) {
 					</label>);
 	return (
 		<div className='absolute top-0 left-0 bg-black grid place-items-center bg-opacity-50 h-screen w-full' onMouseDown={() => props.close()}>
-			<div className='relative h-1/2 w-1/4 bg-white rounded-sm flex items-center justify-center' onMouseDown={(e) => e.stopPropagation()}>
+			<div className='relative min-h-fit p-2 w-1/4 bg-white rounded-sm flex items-center justify-center' onMouseDown={(e) => e.stopPropagation()}>
 				<form className='relative z-10 w-full grid place-items-center'>
 					<div className='text-center w-full'>
 						{ props.register_or_login == 'register' ? email_label : null}
 						<label className=''>
 							<div className=''>Username</div>
 							<input 
-								className='border border-solid border-green-400 w-1/2 rounded-sm outline-none p-3 m-2' 
+								className='border border-black w-1/2 rounded-sm p-3 m-2' 
 								type='text' 
 								placeholder='Username' 
 								name='username'
@@ -72,7 +72,7 @@ export default function Auth(props : AuthProps) {
 						<label className=''>
 							<div className=''>Password</div>
 							<input 
-								className='border border-solid border-green-400 w-1/2 rounded-sm outline-none p-3 m-2' 
+								className='border border-black w-1/2 rounded-sm p-3 m-2' 
 								type='password' 
 								placeholder='Password' 
 								name='password'
@@ -81,16 +81,16 @@ export default function Auth(props : AuthProps) {
 						</label>
 						<div>
 							<button 
-								className='p-2 rounded-sm bg-green-400' 
+								className='p-2 rounded-sm bg-black' 
 								onClick={submitHandler}>
-								<div className='font-bold text-white'>Submit</div>
+								<div className='italic text-white'>Submit</div>
 							</button>
 						</div>
 					</div>
 					<div className='text-sm break-words w-3/4 text-center'>{error}</div>
 				</form>
 				<button 
-					className='absolute top-0 right-0 left-4/5 bottom-4/5 m-1 z-20 rounded-sm bg-green-400 text-white p-1 font-bold' 
+					className='absolute top-0 right-0 left-4/5 bottom-4/5 m-1 z-20 rounded-sm bg-black text-white p-1 italic' 
 					onClick={() => props.close()}>close</button>
 			</div>
 		</div>

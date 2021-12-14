@@ -1,15 +1,15 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import jwt from 'jsonwebtoken';
-import cookie from 'cookie';
 import { pool } from '../../database/databaseinit';
 export default function authenticate(req: NextApiRequest, res: NextApiResponse) {
 	if ('cookie' in req.headers) {
 		console.log('cookie present');
-		let cookies = cookie.parse(req.headers['cookie']);
+		let cookies = req.cookies;
 		let token = cookies['rememberme'];
 		jwt.verify(token, process.env.private_key, (err, decoded) => {
 			if (err) {
 				console.log(err);
+				return;
 			}
 			// maybe check if the password and username is in the database but for now we will just send a 200 status code
 			pool.query('SELECT password FROM USERS WHERE password = ?', [decoded.password], (err, results, fields) => {

@@ -11,6 +11,7 @@ function MyApp({ Component, pageProps }) {
 		let controller = new AbortController();
 		let timeoutID = setTimeout(() => { 
 			router.push('/');
+			setLoaded(true);
 			controller.abort(); 
 			console.log('timeout function called; cannot authenticate'); 
 		}, 5000);

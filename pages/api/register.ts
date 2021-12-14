@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 export default function register(req : NextApiRequest, res : NextApiResponse) {
 	let credentials = JSON.parse(req.body);
 	bcrypt.hash(credentials.password, 10, (err, hash) => {
+		// TODO: we need to send back a response whenever there is an error so that the user knows that he/she cannot have that username since it exists already
 		pool.query('INSERT INTO Users (email, username, password) VALUES (?, ?, ?)', 
 								[credentials.email, credentials.username, hash], 
 								(err, results, fields) => {

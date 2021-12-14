@@ -20,7 +20,7 @@ export default function login(req : NextApiRequest, res : NextApiResponse) {
 							console.log(err);
 						}
 						res.setHeader('Set-Cookie', `rememberme=${token}; Max-Age=${60*60*24*365}`);
-						res.send();
+						res.redirect(308, '/home');
 					}
 				);
 			});

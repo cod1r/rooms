@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import cookie from 'cookie';
 export default function createroom(req : NextApiRequest, res : NextApiResponse) {
 	let room_info = JSON.parse(req.body);
-	let cookies = cookie.parse(req.headers['cookie']);
+	let cookies = req.cookies;
 	let token = cookies['rememberme'];
 	jwt.verify(token, process.env.private_key, (err, decoded) => {
 		if (err) {

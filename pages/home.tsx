@@ -9,6 +9,7 @@ function FriendsList() {
 	let [friends, setFriends] = useState([]);
 	let [filter, setFilter] = useState('');
 	let [friendModal, setFriendModal] = useState(false);
+	let [viewFriend, setViewFriend] = useState('');
 
 	useEffect(() => {
 		let controller = new AbortController();
@@ -24,7 +25,7 @@ function FriendsList() {
 	return (
 		<div className='h-4/5 w-1/2 flex flex-col items-center'>
 			{
-				friendModal ? <ViewProfile friends={friends} /> : null
+				friendModal ? <ViewProfile viewFriend={viewFriend} friends={friends} close={() => setFriendModal(!friendModal)}/> : null
 			}
 			<input className='p-1 rounded-sm m-1' type='text' onChange={(e) => setFilter(e.target.value)} value={filter} placeholder='filter names'/>
 			<ul className='text-white italic rounded-sm mt-1 w-full'>
@@ -32,7 +33,7 @@ function FriendsList() {
 					filter.length === 0 ? 
 					friends.map((f, index) => 
 						<li key={index} className='w-full'>
-							<button onClick={() => setFriendModal(!friendModal)} className='hover:underline'>
+							<button onClick={() => { setViewFriend(f); setFriendModal(!friendModal) } } className='hover:underline'>
 								{f}
 							</button>
 						</li>
