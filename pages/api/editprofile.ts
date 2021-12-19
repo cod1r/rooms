@@ -17,7 +17,7 @@ export default function editprofile(req: NextApiRequest, res: NextApiResponse) {
 				return;
 			}
 			res.statusCode = 200;
-			res.send();
+			res.send({});
 		});
 	});
 }

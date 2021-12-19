@@ -33,12 +33,12 @@ export default function createroom(req : NextApiRequest, res : NextApiResponse) 
 							return;
 						}
 						res.statusCode = 200;
-						res.send();
+						res.send({});
 					});
 				}
 				else {
 					res.statusCode = 401;
-					res.send();
+					res.send({});
 				}
 			});
 			connection.release();
