@@ -5,28 +5,50 @@ import jwt from 'jsonwebtoken';
 export default function register(req : NextApiRequest, res : NextApiResponse) {
 	let credentials = JSON.parse(req.body);
 	bcrypt.hash(credentials.password, 10, (err, hash) => {
-		// TODO: we need to send back a response whenever there is an error so that the user knows that he/she cannot have that username since it exists already
-		pool.query('INSERT INTO Users (email, username, password) VALUES (?, ?, ?)', 
-								[credentials.email, credentials.username, hash], 
-								(err, results, fields) => {
+		pool.getConnection((err, connection) => {
+			if (err) {
+				connection.release();
+				console.log(err);
+				return;
+			}
+			connection.query('SELECT COUNT(USERNAME) FROM Users WHERE USERNAME = ?', [credentials.username], (err, results, fields) => {
+				if (err) {
+					connection.release();
+					console.log(err);
+					return;
+				}
+				// we check if username already exists
+				if (results[0]['COUNT(USERNAME)'] === 0) {
+					connection.query(
+						'INSERT INTO Users (email, username, password) VALUES (?, ?, ?)', 
+						[credentials.email, credentials.username, hash], 
+						(err, results, fields) => {
+							if (err) {
+								console.log(err);
+								return;
+							}
+							res.statusCode = 200;
+							jwt.sign(
+								{ username: credentials.username, password: hash }, 
+								process.env.private_key, 
+								(err, token) => {
 									if (err) {
 										console.log(err);
 										return;
 									}
-									res.statusCode = 200;
-									jwt.sign(
-										{ username: credentials.username, password: hash }, 
-										process.env.private_key, 
-										(err, token) => {
-											if (err) {
-												console.log(err);
-												return;
-											}
-											res.setHeader('Set-Cookie', `rememberme=${token}; Max-Age=${60*60*24*365}`);
-											res.send();
-										}
-									);
+									res.setHeader('Set-Cookie', `rememberme=${token}; Max-Age=${60*60*24*365}`);
+									res.send();
 								}
-		);
+							);
+						}
+					);
+				}
+				else {
+					res.statusCode = 401;
+					res.send();
+				}
+			});
+			connection.release();
+		});
 	});
 }

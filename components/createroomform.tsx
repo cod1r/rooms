@@ -22,6 +22,9 @@ export default function CreateRoomForm() {
 				console.log('room created');
 				glbl.setInRoom(true);
 			}
+			else {
+				// TODO: handle our rejection
+			}
 		});
 	};
 	return (
@@ -39,7 +42,7 @@ export default function CreateRoomForm() {
 							value={roomname}
 							placeholder='your room name'/>
 						<div className='m-1'>
-							<button className='p-1 bg-white rounded-sm italic' onClick={create_room_handler}>create room</button>
+							<button className='text-white rounded-sm italic hover:underline' onClick={create_room_handler}>create room</button>
 						</div>
 					</div>
 				</form>

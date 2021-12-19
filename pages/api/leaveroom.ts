@@ -14,11 +14,13 @@ export default function leaveroom(req: NextApiRequest, res: NextApiResponse) {
 		pool.getConnection((err, connection) => {
 			connection.query('SELECT ID FROM USERS WHERE password = ?', [password], (err, results, fields) => {
 				if (err) {
+					connection.release();
 					console.log(err);
 					return;
 				}
 				connection.query('DELETE FROM PERSONINROOM WHERE USERID = ?', [results[0]['ID']], (err, results1, fields) => {
 					if (err) {
+						connection.release();
 						console.log(err);
 						return;
 					}

@@ -27,14 +27,14 @@ export default function Home() {
 					close={() => setLoginFormStatus(!login_form_status)} 
 					register_or_login={'login'}/> : null
 			}
-			<div className='grid grid-cols-4 grid-rows-3 bg-white p-5 rounded-md'>
+			<div className='grid grid-cols-4 grid-rows-3 text-white p-5 rounded-md'>
 				<div className='row-start-1 col-span-4 grid place-items-center'>
 					<div>
 						<div className='text-5xl text-center font-bold'>heyxD</div>
 						<div className='text-xl'>audio rooms where you can</div>
 					</div>
 				</div>
-				<div className='grid place-items-center border-4 border-solid border-black m-1 rounded-sm p-2'>
+				<div className='grid place-items-center m-1 rounded-sm p-2'>
 					<img 
 						src="https://c.tenor.com/NHEGSq1lTmAAAAAi/rolling-on-the-floor-laughing-joypixels.gif"
 						alt='Rolling On The Floor Laughing Joypixels Sticker' width='100px'/>
@@ -42,7 +42,7 @@ export default function Home() {
 						Laugh with ur buddies
 					</div>
 				</div>
-				<div className='grid place-items-center border-4 border-solid border-black m-1 rounded-sm p-2'>
+				<div className='grid place-items-center m-1 rounded-sm p-2'>
 					<img
 						src="https://c.tenor.com/bn2EuicZD3sAAAAi/hot-face-joypixels.gif"
 						alt="Hot face emoji" width='100px'/>
@@ -50,7 +50,7 @@ export default function Home() {
 						Sweat with ur buddies
 					</div>
 				</div>
-				<div className='grid place-items-center border-4 border-solid border-black m-1 rounded-sm p-2'>
+				<div className='grid place-items-center m-1 rounded-sm p-2'>
 					<img
 						src="https://c.tenor.com/-GXJw7T3EDYAAAAi/ep00000-emoji.gif"
 						alt="Sobbing emoji" width='100px'/>
@@ -58,7 +58,7 @@ export default function Home() {
 						Cry with ur buddies
 					</div>
 				</div>
-				<div className='grid place-items-center border-4 border-solid border-black m-1 rounded-sm p-2'>
+				<div className='grid place-items-center m-1 rounded-sm p-2'>
 					<img
 						src="https://c.tenor.com/ZLHdbFbs26sAAAAi/kirby-cute.gif"
 						alt="Kirby dancing" width='100px'/>
@@ -70,7 +70,7 @@ export default function Home() {
 						{	!glbl.authenticated ? 
 							<div className='grid place-items-center'>
 								<button 
-									className='p-2 m-2 bg-black rounded-sm text-white italic text-2xl h-1/2 w-1/2' 
+									className='text-white italic text-2xl h-1/2 w-1/2 hover:underline' 
 									onClick={() => setRegisterFormStatus(!register_form_status)}>
 										register
 								</button> 
@@ -81,7 +81,7 @@ export default function Home() {
 						{	!glbl.authenticated ? 
 								<div className='grid place-items-center'>
 									<button 
-										className='p-2 m-2 bg-black rounded-sm text-white italic text-2xl h-1/2 w-1/2' 
+										className='text-white italic text-2xl h-1/2 w-1/2 hover:underline' 
 										onClick={() => setLoginFormStatus(!login_form_status)}>
 											login
 									</button> 
