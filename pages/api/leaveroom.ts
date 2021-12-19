@@ -1,7 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { pool } from '../../database/databaseinit';
 import jwt from 'jsonwebtoken';
-import cookie from 'cookie';
 export default function leaveroom(req: NextApiRequest, res: NextApiResponse) {
 	let cookies = req.cookies;
 	let token = cookies['rememberme'];
