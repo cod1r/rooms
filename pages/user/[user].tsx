@@ -6,6 +6,7 @@ export default function User() {
 	let [bio, setBio] = useState('');
 	useEffect(() => {
 		let { user } = router.query;
+		// @ts-ignore
 		setUsername(user);
 		let controller = new AbortController();
 		let to = setTimeout(() => controller.abort(), 5000);
