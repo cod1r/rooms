@@ -2,6 +2,7 @@ import React, { useEffect, useState, useContext } from 'react'
 import { GLOBALS } from '../contexts/globals';
 import Auth from '../components/user_auth';
 import router from 'next/router';
+import Image from 'next/image';
 
 export default function Home() {
 	let [register_form_status, setRegisterFormStatus] 	= useState(false);
@@ -12,7 +13,7 @@ export default function Home() {
 			console.log(router.pathname);
 			router.push('/home');
 		}
-	}, []);
+	}, [glbl.authenticated, glbl.in_room]);
 	return (
 		<div className='grid place-items-center h-full bg-black'>
 			{	
@@ -35,7 +36,7 @@ export default function Home() {
 					</div>
 				</div>
 				<div className='grid place-items-center m-1 rounded-sm p-2'>
-					<img 
+					<Image 
 						src="https://c.tenor.com/NHEGSq1lTmAAAAAi/rolling-on-the-floor-laughing-joypixels.gif"
 						alt='Rolling On The Floor Laughing Joypixels Sticker' width='100px'/>
 					<div className='font-bold'>
@@ -43,7 +44,7 @@ export default function Home() {
 					</div>
 				</div>
 				<div className='grid place-items-center m-1 rounded-sm p-2'>
-					<img
+					<Image
 						src="https://c.tenor.com/bn2EuicZD3sAAAAi/hot-face-joypixels.gif"
 						alt="Hot face emoji" width='100px'/>
 					<div className='font-bold'>
@@ -51,7 +52,7 @@ export default function Home() {
 					</div>
 				</div>
 				<div className='grid place-items-center m-1 rounded-sm p-2'>
-					<img
+					<Image
 						src="https://c.tenor.com/-GXJw7T3EDYAAAAi/ep00000-emoji.gif"
 						alt="Sobbing emoji" width='100px'/>
 					<div className='font-bold'>
@@ -59,7 +60,7 @@ export default function Home() {
 					</div>
 				</div>
 				<div className='grid place-items-center m-1 rounded-sm p-2'>
-					<img
+					<Image
 						src="https://c.tenor.com/ZLHdbFbs26sAAAAi/kirby-cute.gif"
 						alt="Kirby dancing" width='100px'/>
 					<div className='font-bold'>

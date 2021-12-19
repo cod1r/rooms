@@ -26,9 +26,9 @@ function PublicRooms(): ReactElement {
 export default function Home() {
 	let [MenuIndex, setMenuIndex]: [number, React.Dispatch<React.SetStateAction<number>>] = useState(0);
 	let MenuOptions: Array<ReactElement> = [
-		<CreateRoomForm/>,
-		<SearchWrapper/>, 
-		<PublicRooms/>, 
+		<CreateRoomForm key={0}/>,
+		<SearchWrapper key={1}/>, 
+		<PublicRooms key={2}/>, 
 	];
 
 	useEffect(() => {
