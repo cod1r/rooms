@@ -12,7 +12,7 @@ export default function authenticate(req: NextApiRequest, res: NextApiResponse) 
 				return;
 			}
 			// maybe check if the password and username is in the database but for now we will just send a 200 status code
-			pool.query('SELECT password FROM USERS WHERE password = ?', [decoded.password], (err, results, fields) => {
+			pool.query('SELECT password FROM Users WHERE password = ?', [decoded.password], (err, results, fields) => {
 				if (err) {
 					console.log(err);
 					return;

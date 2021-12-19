@@ -7,7 +7,7 @@ export default function userinfo(req: NextApiRequest, res: NextApiResponse) {
 	let cookies = req.cookies;
 	let token = cookies['rememberme'];
 	jwt.verify(token, process.env.private_key, (err, decoded) => {
-		pool.query('SELECT USERNAME, BIO FROM USERS WHERE USERNAME = ?', ['username' in body ? body.username : decoded.username], (err, results, fields) => {
+		pool.query('SELECT USERNAME, BIO FROM Users WHERE USERNAME = ?', ['username' in body ? body.username : decoded.username], (err, results, fields) => {
 			if (err) {
 				console.log(err);
 				return;

@@ -26,7 +26,7 @@ export default function joinroom(req: NextApiRequest, res: NextApiResponse) {
 						return;
 					}
 					if (results[0]['COUNT(ROOMNAME)'] === 0) {
-						connection.query('SELECT ID FROM USERS WHERE password = ?', [decoded['password']], (err, results, fields) => {
+						connection.query('SELECT ID FROM Users WHERE password = ?', [decoded['password']], (err, results, fields) => {
 							if (err) {
 								connection.release();
 								console.log(err);
@@ -47,7 +47,7 @@ export default function joinroom(req: NextApiRequest, res: NextApiResponse) {
 										return;
 									}
 								});
-							connection.query('SELECT USERNAME, PEERID FROM PersonInRoom INNER JOIN USERS ON PersonInRoom.USERID = USERS.ID WHERE ROOMNAME = ?', 
+							connection.query('SELECT USERNAME, PEERID FROM PersonInRoom INNER JOIN Users ON PersonInRoom.USERID = Users.ID WHERE ROOMNAME = ?', 
 								[room_info['roomname']], 
 								(err, results, fields) => {
 									if (err) {

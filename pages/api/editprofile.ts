@@ -11,7 +11,7 @@ export default function editprofile(req: NextApiRequest, res: NextApiResponse) {
 			console.log(err);
 			return;
 		}
-		pool.query('UPDATE USERS SET BIO = ? WHERE USERNAME = ?', [body.bio, decoded.username], (err, results, fields) => {
+		pool.query('UPDATE Users SET BIO = ? WHERE USERNAME = ?', [body.bio, decoded.username], (err, results, fields) => {
 			if (err) {
 				console.log(err);
 				return;

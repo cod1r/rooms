@@ -12,7 +12,7 @@ export default function friends(req: NextApiRequest, res: NextApiResponse) {
 			return;
 		}
 		if (body.querytype === 'search') {
-			pool.query('SELECT USERNAME FROM USERS WHERE USERNAME LIKE ?', 
+			pool.query('SELECT USERNAME FROM Users WHERE USERNAME LIKE ?', 
 				['%' + body.search + '%'], (err, results, fields) => {
 					if (err) {
 						console.log(err);
@@ -22,7 +22,7 @@ export default function friends(req: NextApiRequest, res: NextApiResponse) {
 			});
 		}
 		else if (body.querytype === 'friends') {
-			pool.query('SELECT USERNAME FROM USERS WHERE ID = (SELECT FriendID FROM Friends WHERE USERID = (SELECT ID FROM USERS WHERE USERNAME = ?))', 
+			pool.query('SELECT USERNAME FROM Users WHERE ID = (SELECT FriendID FROM Friends WHERE USERID = (SELECT ID FROM Users WHERE USERNAME = ?))', 
 				[decoded.username], (err, results, fields) => {
 					if (err) {
 						console.log(err);
