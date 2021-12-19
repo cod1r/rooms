@@ -1,6 +1,5 @@
 import { useEffect, useState, ReactElement } from 'react';
 import Link from 'next/link';
-import ViewProfile from '../components/viewprofile';
 
 function DirectMsgs(): ReactElement {
 	return (
