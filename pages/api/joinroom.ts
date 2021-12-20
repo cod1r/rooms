@@ -15,59 +15,53 @@ export default function joinroom(req: NextApiRequest, res: NextApiResponse) {
 			}
 			pool.getConnection((err, connection) => {
 				if (err) {
-					connection.release();
+					try { connection.release(); } catch (e) { console.log('after release', e) };
 					console.log(err);
 					return;
 				}
-				connection.query('SELECT ROOMNAME FROM Rooms WHERE ROOMNAME = ?', [room_info['roomname']], (err, results, fields) => {
+				connection.query('SELECT COUNT(ROOMNAME) FROM Rooms WHERE ROOMNAME = ?', [room_info['roomname']], (err, results, fields) => {
 					if (err) {
-						connection.release();
+						try { connection.release(); } catch (e) { console.log('after release', e) };
 						console.log(err);
 						return;
 					}
-					if (results[0]['COUNT(ROOMNAME)'] === 0) {
-						connection.query('SELECT ID FROM Users WHERE password = ?', [decoded['password']], (err, results, fields) => {
+					if (results[0]['COUNT(ROOMNAME)'] === 1) {
+						connection.query('DELETE FROM PersonInRoom WHERE USERID = (SELECT ID FROM Users WHERE password = ?)', [decoded['password']], (err, results, fields) => {
 							if (err) {
-								connection.release();
+								try { connection.release(); } catch (e) { console.log('after release', e) };
 								console.log(err);
 								return;
 							}
-							connection.query('DELETE FROM PersonInRoom WHERE USERID = ?', [results[0]['ID']], (err1, results1, fields) => {
+						});
+						connection.query('INSERT INTO PersonInRoom (USERID, ROOMNAME, PEERID) VALUES ((SELECT ID FROM Users WHERE password = ?) , ?, ?)', 
+							[decoded.password, room_info['roomname'], room_info['id']], (err, results1, fields) => {
 								if (err) {
-									connection.release();
+									try { connection.release(); } catch (e) { console.log('after release', e) };
 									console.log(err);
 									return;
 								}
-							});
-							connection.query('INSERT INTO PersonInRoom (USERID, ROOMNAME, PEERID) VALUES (?, ?, ?)', 
-								[results[0]['ID'], room_info['roomname'], room_info['id']], (err, results1, fields) => {
-									if (err) {
-										connection.release();
-										console.log(err);
-										return;
-									}
+								connection.query('SELECT USERNAME, PEERID FROM PersonInRoom INNER JOIN Users ON PersonInRoom.USERID = Users.ID WHERE ROOMNAME = ?', 
+									[room_info['roomname']], 
+									(err, results, fields) => {
+										if (err) {
+											try { connection.release(); } catch (e) { console.log('after release', e) };
+											console.log(err);
+											return;
+										}
+										res.statusCode = 200;
+										let users = {};
+										results.forEach((result) => users[result['USERNAME']] = result['PEERID']);
+										res.send(users);
 								});
-							connection.query('SELECT USERNAME, PEERID FROM PersonInRoom INNER JOIN Users ON PersonInRoom.USERID = Users.ID WHERE ROOMNAME = ?', 
-								[room_info['roomname']], 
-								(err, results, fields) => {
-									if (err) {
-										connection.release();
-										console.log(err);
-										return;
-									}
-									res.statusCode = 200;
-									let users = {};
-									results.forEach((result) => users[result['USERNAME']] = result['PEERID']);
-									res.send(users);
 							});
-						});
+						//try { connection.release(); } catch (e) { console.log('after release', e) };
 					}
 					else {
 						res.statusCode = 401;
 						res.send({});
+						//try { connection.release(); } catch (e) { console.log('after release', e) };
 					}
 				});
-				connection.release();
 			});
 		});
 	}

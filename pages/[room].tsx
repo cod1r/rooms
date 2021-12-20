@@ -17,8 +17,7 @@ export default function Room() {
 			navigator.mediaDevices.getUserMedia({ audio: true }).then(mediaStream => {
 				setMicrophoneMediaStream(mediaStream);
 				setMicMuted(false);
-				// TODO: based on how we are reassigning the audio's
-				// srcobject, we can only hear one person at a time.
+
 				peer.on('call', (call) => {
 					call.on('error', (e) => {
 						console.error('ERROR', e);
@@ -66,10 +65,14 @@ export default function Room() {
 	let ChangeAudioState = () => {
 		if (audioMuted === null) {
 			audio.play().then(
-				() => setAudioMuted(false), 
+				() => {
+					setAudioMuted(false);
+					console.log('accepted');
+				},
 				(e) => { 
 					console.error('rejected', e); 
-					setAudioMuted(null); }
+					setAudioMuted(null); 
+				}
 			).catch((e) => {
 				console.error(e);
 				setAudioMuted(null);

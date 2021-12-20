@@ -2,15 +2,14 @@ import React, { useEffect, useState, useContext } from 'react'
 import { GLOBALS } from '../contexts/globals';
 import Auth from '../components/user_auth';
 import router from 'next/router';
-import img from 'next/image';
 
-export default function Home() {
+export default function Index() {
 	let [register_form_status, setRegisterFormStatus] 	= useState(false);
 	let [login_form_status, setLoginFormStatus] 		= useState(false);
 	let glbl = useContext(GLOBALS);
+	// use effect here just in case register or login doesn't redirect user to home
 	useEffect(() => {
 		if (glbl.authenticated && !glbl.in_room && router.pathname === '/') {
-			console.log(router.pathname);
 			router.push('/home');
 		}
 	}, [glbl.authenticated, glbl.in_room]);

@@ -11,21 +11,19 @@ export default function leaveroom(req: NextApiRequest, res: NextApiResponse) {
 		}
 		let password = decoded.password;
 		pool.getConnection((err, connection) => {
-			connection.query('SELECT ID FROM Users WHERE password = ?', [password], (err, results, fields) => {
+			if (err) {
+				connection.release();
+				console.log(err);
+				return;
+			}
+			connection.query('DELETE FROM PersonInRoom WHERE USERID = (SELECT ID FROM Users WHERE password = ?)', [password], (err, results, fields) => {
 				if (err) {
 					connection.release();
 					console.log(err);
 					return;
 				}
-				connection.query('DELETE FROM PersonInRoom WHERE USERID = ?', [results[0]['ID']], (err, results1, fields) => {
-					if (err) {
-						connection.release();
-						console.log(err);
-						return;
-					}
 					res.statusCode = 200;
 					res.send({});
-				});
 			});
 			connection.release();
 		});
