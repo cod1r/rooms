@@ -37,7 +37,7 @@ export default function Auth(props : AuthProps) {
 				clearTimeout(timeoutId);
 				console.log('authentication request status is 200');
 				glbl.setAuthenticated(true);
-				router.push(res.url);
+				router.push('/home');
 				props.close();
 			}
 		});

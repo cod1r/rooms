@@ -41,7 +41,7 @@ export default function register(req : NextApiRequest, res : NextApiResponse) {
 										return;
 									}
 									res.setHeader('Set-Cookie', `rememberme=${token}; Max-Age=${60*60*24*365}`);
-									res.redirect(308, '/home');
+									res.send({});
 								}
 							);
 						}
