@@ -8,7 +8,7 @@ import { pool } from '../../database/databaseinit';
 export default function getrooms(req: NextApiRequest, res: NextApiResponse) {
 	let body = JSON.parse(req.body);
 	if ('search' in body) {
-		pool.query("SELECT ROOMNAME FROM ROOMS WHERE ROOMNAME LIKE ?", ['%' + body.search + '%'], (err, results, fields) => {
+		pool.query("SELECT ROOMNAME FROM Rooms WHERE ROOMNAME LIKE ?", ['%' + body.search + '%'], (err, results, fields) => {
 			if (err) {
 				console.log(err);
 				return;

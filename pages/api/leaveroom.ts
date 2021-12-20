@@ -17,7 +17,7 @@ export default function leaveroom(req: NextApiRequest, res: NextApiResponse) {
 					console.log(err);
 					return;
 				}
-				connection.query('DELETE FROM PERSONINROOM WHERE USERID = ?', [results[0]['ID']], (err, results1, fields) => {
+				connection.query('DELETE FROM PersonInRoom WHERE USERID = ?', [results[0]['ID']], (err, results1, fields) => {
 					if (err) {
 						connection.release();
 						console.log(err);

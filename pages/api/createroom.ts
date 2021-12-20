@@ -27,7 +27,7 @@ export default function createroom(req : NextApiRequest, res : NextApiResponse) 
 				}
 				// we only allow people to create a room only if the roomname doesn't already exist
 				if (results[0]['COUNT(ROOMNAME)'] === 0) {
-					connection.query('INSERT INTO ROOMS (RoomName) VALUES(?)', [room_info['roomname']], (err, results, fields) => {
+					connection.query('INSERT INTO Rooms (RoomName) VALUES(?)', [room_info['roomname']], (err, results, fields) => {
 						if (err) {
 							console.log(err);
 							return;
