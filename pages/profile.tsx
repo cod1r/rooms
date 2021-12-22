@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 function DirectMsgs(): ReactElement {
 	return (
-		<div className='text-white'>
+		<div className=''>
 			<div className='text-2xl'>direct msgs</div>
 		</div>
 	);
@@ -20,11 +20,16 @@ function FriendsList(props: { friends: Array<string> }) {
 
 	return (
 		<div className='h-4/5 w-1/2 flex flex-col items-center'>
-			<div className='text-white text-2xl'>
+			<div className=' text-2xl'>
 				friends
 			</div>
-			<input className='p-1 rounded-sm m-1' type='text' onChange={(e) => setFilter(e.target.value)} value={filter} placeholder='filter names'/>
-			<ul className='text-center text-white italic rounded-sm mt-1 w-full'>
+			<input 
+				className='outline-none p-1 rounded-sm m-1 text-black' 
+				type='text' 
+				onChange={(e) => setFilter(e.target.value)} 
+				value={filter} 
+				placeholder='filter names'/>
+			<ul className='text-center rounded-sm mt-1 w-full'>
 				{ 
 					filter.length === 0 ? 
 					props.friends.map((f, index) => 
@@ -95,11 +100,11 @@ export default function Profile() {
 		}
 	};
 	return (
-		<div className='bg-black h-full flex flex-col items-center justify-center'>
+		<div className='text-white bg-black h-full flex flex-col items-center justify-center'>
 			<Link href='/home'>
-				<a className='text-white italic hover:underline'>Home</a>
+				<a className='hover:underline'>Home</a>
 			</Link>
-			<div className='text-white h-5/6 w-1/2 rounded-sm flex flex-col'>
+			<div className=' h-5/6 w-1/2 rounded-sm flex flex-col'>
 				<div className='text-center flex justify-center m-1'>
 					<div className='w-1/2 border border-black text-2xl font-bold'>
 						{username}
@@ -111,13 +116,10 @@ export default function Profile() {
 						bio : 
 						<textarea 
 							className='
+								text-black
 								resize-none 
-								border 
-								border-black 
 								p-1 
-								bg-black 
-								border 
-								border-white' 
+								outline-none' 
 							onChange={(e) => setTextArea(e.target.value)} 
 							rows={10} 
 							cols={50} 
@@ -129,7 +131,6 @@ export default function Profile() {
 				<div className='flex justify-center'>
 					<button 
 						className='
-							text-white 
 							p-2 
 							bg-black 
 							m-1 
@@ -141,7 +142,7 @@ export default function Profile() {
 					{ 
 						editMode ? 
 						<button 
-							className='hover:underline text-white' 
+							className='hover:underline' 
 							onClick={() => setEditMode(false)}>
 							cancel
 						</button>

@@ -1,11 +1,9 @@
 import React, { useEffect, useState, useContext } from 'react'
 import { GLOBALS } from '../contexts/globals';
-import Auth from '../components/user_auth';
 import router from 'next/router';
+import Link from 'next/link';
 
 export default function Index() {
-	let [register_form_status, setRegisterFormStatus] 	= useState(false);
-	let [login_form_status, setLoginFormStatus] 		= useState(false);
 	let glbl = useContext(GLOBALS);
 	// use effect here just in case register or login doesn't redirect user to home
 	useEffect(() => {
@@ -15,18 +13,6 @@ export default function Index() {
 	}, [glbl.authenticated, glbl.in_room]);
 	return (
 		<div className='grid place-items-center h-full bg-black'>
-			{	
-				register_form_status ? 
-				<Auth 
-					close={() => setRegisterFormStatus(!register_form_status)} 
-					register_or_login={'register'}/> : null
-			}
-			{	
-				login_form_status ? 
-				<Auth 
-					close={() => setLoginFormStatus(!login_form_status)} 
-					register_or_login={'login'}/> : null
-			}
 			<div className='grid grid-cols-4 grid-rows-3 text-white p-5 rounded-md'>
 				<div className='row-start-1 col-span-4 grid place-items-center'>
 					<div>
@@ -67,28 +53,16 @@ export default function Index() {
 					</div>
 				</div>
 				<div className='text-center row-start-3 col-span-4 grid grid-cols-2'>
-						{	!glbl.authenticated ? 
-							<div className='grid place-items-center'>
-								<button 
-									className='text-white italic text-2xl h-1/2 w-1/2 hover:underline' 
-									onClick={() => setRegisterFormStatus(!register_form_status)}>
-										register
-								</button> 
-							</div>
-								: 
-								null
-						}
-						{	!glbl.authenticated ? 
-								<div className='grid place-items-center'>
-									<button 
-										className='text-white italic text-2xl h-1/2 w-1/2 hover:underline' 
-										onClick={() => setLoginFormStatus(!login_form_status)}>
-											login
-									</button> 
-								</div>
-									: 
-									null
-						}
+					<div className='grid place-items-center'>
+						<Link href='/register'>
+							<a className='text-2xl hover:underline'>register</a>
+						</Link>
+					</div>
+					<div className='grid place-items-center'>
+						<Link href='/login'>
+							<a className='text-2xl hover:underline'>login</a>
+						</Link>
+					</div>
 				</div>
 			</div>
 		</div>

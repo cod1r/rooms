@@ -10,9 +10,10 @@ export default function Room() {
 	let [audioMuted, setAudioMuted] = useState(null);
 	let [peer, setPeer] = useState(null);
 	let [audio, setAudio] = useState(null);
-	let [usersInRoom, setUsersInRoom] = useState({});
+	let [usersInRoom, setUsersInRoom] = useState([]);
+	let [username, setUsername] = useState('');
 
-	let ChangeMicrophoneState = (users = {}) => {
+	let ChangeMicrophoneState = (peerids = [], username = '') => {
 		if (MicrophoneMediaStream === null) {
 			navigator.mediaDevices.getUserMedia({ audio: true }).then(mediaStream => {
 				setMicrophoneMediaStream(mediaStream);
@@ -34,7 +35,16 @@ export default function Room() {
 						console.log('open?', call.open);
 					});
 				});
-				Object.values(users).forEach((peerid) => {
+				peer.on('connect', (conn) => {
+					conn.on('open', () => {
+						conn.on('data', (data: string) => {
+							setUsersInRoom([...usersInRoom, data]);
+						});
+						conn.send(username);
+					});
+				});
+
+				peerids.forEach((peerid) => {
 					if (peerid != peer.id) {
 						console.log('calling', peerid);
 						let call = peer.call(peerid, mediaStream);
@@ -50,10 +60,19 @@ export default function Room() {
 							}
 							console.log('open?', call.open);
 						});
+
+						let conn = peer.connect(peerid);
+						conn.on('open', () => {
+							conn.on('data', (data: string) => {
+								setUsersInRoom([...usersInRoom, data]);
+							});
+							conn.send(username);
+						});
 					}
 				});
 			}, rejection => {
 				console.error("microphone rejected");
+				router.push('/home');
 			}).catch((e) => console.error(e));
 		}
 		else {
@@ -126,10 +145,11 @@ export default function Room() {
 					clearTimeout(timeoutid_2);
 					if (res.status == 200) {
 						console.log('joinroom api status 200');
-						let users = await res.json();
-						setUsersInRoom(users);
+						let { peerids, username } = await res.json();
+						setUsername(username);
+						setUsersInRoom([...usersInRoom, username]);
 
-						ChangeMicrophoneState(users);
+						ChangeMicrophoneState(peerids, username);
 
 						if (MicrophoneMediaStream !== null) 
 							setLoaded(true);
@@ -175,8 +195,10 @@ export default function Room() {
 	return (
 		Loaded !== null && glbl.authenticated === true ?
 			<div className='h-screen bg-black flex flex-col items-center'>
-				<div className='h-full flex items-center justify-center'>
-					{ Object.keys(usersInRoom).map((user, index) => <div key={index} className='bg-white rounded-lg p-2 m-1'>{user}</div>) }
+				<div className='h-full flex items-center justify-center overflow-y-scroll w-full'>
+					<ul className='text-white'>
+						{ usersInRoom.map((user, index) => <li key={index} className='p-2 m-1'>{user}</li>) }
+					</ul>
 				</div>
 				<div className='text-center'>
 					<button 
@@ -186,7 +208,7 @@ export default function Room() {
 					</button>
 					<button 
 						className='p-2 m-2 bg-white rounded-full'
-						onClick={ChangeMicrophoneState}>
+						onClick={() => ChangeMicrophoneState()}>
 						{ MicMuted ? <s>Microphone</s> : <>Microphone</> }
 					</button>
 					<button
