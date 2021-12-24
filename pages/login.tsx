@@ -21,10 +21,10 @@ export default function Login() {
 		});
 	};
 	return (
-		<div className='h-full w-full grid place-items-center'>
+		<div className='bg-black h-full w-full grid place-items-center'>
 			<form className='w-full grid place-items-center'>
 				<label className='w-full md:w-1/2 flex flex-col items-center'>
-					<div className='md:text-2xl'>Username</div>
+					<div className='text-white md:text-2xl'>Username</div>
 					<input 
 						className='outline-none w-1/2 rounded-sm p-3 m-2' 
 						type='text' 

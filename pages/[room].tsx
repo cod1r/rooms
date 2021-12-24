@@ -11,9 +11,9 @@ export default function Room() {
 	let [peer, setPeer] = useState(null);
 	let [audio, setAudio] = useState(null);
 	let [usersInRoom, setUsersInRoom] = useState([]);
-	let [username, setUsername] = useState('');
+	let [dataChannelConnection, setDataChannelConnection] = useState(null);
 
-	let ChangeMicrophoneState = (peerids = [], username = '') => {
+	let ChangeMicrophoneState = (peerids = [], username = '', usersInRoomFromFetch = []) => {
 		if (MicrophoneMediaStream === null) {
 			navigator.mediaDevices.getUserMedia({ audio: true }).then(mediaStream => {
 				setMicrophoneMediaStream(mediaStream);
@@ -35,18 +35,21 @@ export default function Room() {
 						console.log('open?', call.open);
 					});
 				});
-				peer.on('connect', (conn) => {
+				peer.on('connection', (conn) => {
 					conn.on('open', () => {
 						conn.on('data', (data: string) => {
-							setUsersInRoom([...usersInRoom, data]);
+							setUsersInRoom([...usersInRoomFromFetch, data]);
 						});
 						conn.send(username);
 					});
+					conn.on('error', (e) => {
+						console.log('conn error', e);
+					});
+					setDataChannelConnection(conn);
 				});
 
 				peerids.forEach((peerid) => {
 					if (peerid != peer.id) {
-						console.log('calling', peerid);
 						let call = peer.call(peerid, mediaStream);
 						call.on('error', (e) => {
 							console.error(e);
@@ -64,10 +67,14 @@ export default function Room() {
 						let conn = peer.connect(peerid);
 						conn.on('open', () => {
 							conn.on('data', (data: string) => {
-								setUsersInRoom([...usersInRoom, data]);
+								setUsersInRoom([...usersInRoomFromFetch, data]);
 							});
 							conn.send(username);
 						});
+						conn.on('error', (e) => {
+							console.log('conn error', e);
+						});
+						setDataChannelConnection(conn);
 					}
 				});
 			}, rejection => {
@@ -127,7 +134,6 @@ export default function Room() {
 				console.error('PEER ERROR', e);
 			});
 			peer.on('open', (id) => {
-				console.log('my id', id);
 				let { room } = router.query;
 				let controller = new AbortController();
 				let timeoutid_2 = setTimeout(() => {
@@ -146,10 +152,13 @@ export default function Room() {
 					if (res.status == 200) {
 						console.log('joinroom api status 200');
 						let { peerids, username } = await res.json();
-						setUsername(username);
+						// because setState is async, we have to pass in a temporary current value for 
+						// the usersInRoom into ChangeMicrophoneState, IDK if this would be ideal but if
+						// I don't do this, I would have to write another useEffect to reload our component 
+						// whenever usersInRoom actually updates
 						setUsersInRoom([...usersInRoom, username]);
 
-						ChangeMicrophoneState(peerids, username);
+						ChangeMicrophoneState(peerids, username, [...usersInRoom, username]);
 
 						if (MicrophoneMediaStream !== null) 
 							setLoaded(true);
@@ -195,24 +204,22 @@ export default function Room() {
 	return (
 		Loaded !== null && glbl.authenticated === true ?
 			<div className='h-screen bg-black flex flex-col items-center'>
-				<div className='h-full flex items-center justify-center overflow-y-scroll w-full'>
-					<ul className='text-white'>
-						{ usersInRoom.map((user, index) => <li key={index} className='p-2 m-1'>{user}</li>) }
-					</ul>
-				</div>
-				<div className='text-center'>
+				<ul className='text-white overflow-y-auto w-full overflow-x-hidden h-full text-center'>
+					{ usersInRoom.map((user, index) => <li key={index} className='p-2 m-1'>{user}</li>) }
+				</ul>
+				<div className='flex justify-center'>
 					<button 
-						className='p-2 m-2 bg-white rounded-full' 
+						className='p-2 m-2 bg-white rounded-sm' 
 						onClick={() => {router.push('/home');}}>
 						Leave room
 					</button>
 					<button 
-						className='p-2 m-2 bg-white rounded-full'
+						className='p-2 m-2 bg-white rounded-sm'
 						onClick={() => ChangeMicrophoneState()}>
 						{ MicMuted ? <s>Microphone</s> : <>Microphone</> }
 					</button>
 					<button
-						className='p-2 m-2 bg-white rounded-full'
+						className='p-2 m-2 bg-white rounded-sm'
 						onClick={ChangeAudioState}>
 						{ audioMuted === null || audioMuted ? <s>Sound</s> : <>Sound</> }
 					</button>

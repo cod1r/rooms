@@ -1,12 +1,13 @@
 import { useState, useContext } from 'react';
 import { GLOBALS } from '../contexts/globals';
 import router from 'next/router';
-export default function Register(props) {
+export default function Register() {
 	let [username, setUsername] = useState('');
 	let [password, setPassword] = useState('');
 	let [email, setEmail] = useState('');
 	let glbl = useContext(GLOBALS);
-	let submitHandler = () => {
+	let submitHandler = (e) => {
+		e.preventDefault();
 		fetch('/api/register', {
 			method: 'POST',
 			body: JSON.stringify({
@@ -18,15 +19,14 @@ export default function Register(props) {
 			if (res.status == 200) {
 				glbl.setAuthenticated(true);
 				router.push('/home');
-				props.close();
 			}
 		});
 	};
 	return (
-		<div className='h-full w-full grid place-items-center'>
+		<div className='bg-black h-full w-full grid place-items-center'>
 			<form className='w-full grid place-items-center'>
 				<label className='w-full md:w-1/2 flex flex-col items-center'>
-					<div className='md:text-2xl'>Email (not required)</div>
+					<div className='text-white md:text-2xl'>Email (not required)</div>
 					<input 
 						className='outline-none w-1/2 rounded-sm p-3 m-2' 
 						type='Email' 
