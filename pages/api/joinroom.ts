@@ -55,7 +55,7 @@ export default function joinroom(req: NextApiRequest, res: NextApiResponse) {
 										});
 								});
 							});
-						//try { connection.release(); } catch (e) { console.log('after release', e) };
+						try { connection.release(); } catch (e) { console.log('after release', e) };
 					}
 					else {
 						res.statusCode = 401;

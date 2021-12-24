@@ -5,6 +5,10 @@ import jwt from 'jsonwebtoken';
 export default function login(req : NextApiRequest, res : NextApiResponse) {
 	let credentials = JSON.parse(req.body);
 	pool.query('SELECT password FROM Users WHERE USERNAME = ?', [credentials.username], (err, results, fields) => {
+		if (err) {
+			console.error(err);
+			return;
+		}
 		results.forEach((element) => { 
 			bcrypt.compare(credentials.password, element.password, (err, result) => {
 				if (err) {

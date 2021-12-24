@@ -2,6 +2,15 @@ import { useEffect, useState, useContext } from 'react';
 import router from 'next/router';
 import { GLOBALS } from '../contexts/globals';
 
+// the function that gets returned from a useEffect function is that function 
+// that cleans up the PREVIOUS effect
+
+interface DataChannelDataType {
+	name: string,
+	disconnected: boolean
+	message?: string
+}
+
 export default function Room() {
 	let glbl = useContext(GLOBALS);
 	let [Loaded, setLoaded] = useState(false);
@@ -10,73 +19,18 @@ export default function Room() {
 	let [audioMuted, setAudioMuted] = useState(null);
 	let [peer, setPeer] = useState(null);
 	let [audio, setAudio] = useState(null);
-	let [usersInRoom, setUsersInRoom] = useState([]);
-	let [dataChannelConnection, setDataChannelConnection] = useState(null);
+	// this keeps the current user's username
+	let [user, setUser] = useState('');
+	let [dataChannelConnections, setDataChannelConnections]: [Map<string, any>, any] = useState(new Map());
+	let [peerids, setPeerids] = useState([]);
+	// logging because I can't see safari console.logs
+	let [log, setLog] = useState('');
 
-	let ChangeMicrophoneState = (peerids = [], username = '', usersInRoomFromFetch = []) => {
+	let ChangeMicrophoneState = () => {
 		if (MicrophoneMediaStream === null) {
 			navigator.mediaDevices.getUserMedia({ audio: true }).then(mediaStream => {
 				setMicrophoneMediaStream(mediaStream);
 				setMicMuted(false);
-
-				peer.on('call', (call) => {
-					call.on('error', (e) => {
-						console.error('ERROR', e);
-					});
-					call.answer(mediaStream);
-					console.log('somebody called me');
-					call.on('stream', (remoteStream: MediaStream) => {
-						if (audio.srcObject === null) {
-							audio.srcObject = remoteStream;
-						}
-						else {
-							remoteStream.getAudioTracks().forEach(track => audio.srcObject.addTrack(track));
-						}
-						console.log('open?', call.open);
-					});
-				});
-				peer.on('connection', (conn) => {
-					conn.on('open', () => {
-						conn.on('data', (data: string) => {
-							setUsersInRoom([...usersInRoomFromFetch, data]);
-						});
-						conn.send(username);
-					});
-					conn.on('error', (e) => {
-						console.log('conn error', e);
-					});
-					setDataChannelConnection(conn);
-				});
-
-				peerids.forEach((peerid) => {
-					if (peerid != peer.id) {
-						let call = peer.call(peerid, mediaStream);
-						call.on('error', (e) => {
-							console.error(e);
-						});
-						call.on('stream', (remoteStream: MediaStream) => {
-							if (audio.srcObject === null) {
-								audio.srcObject = remoteStream;
-							}
-							else {
-								remoteStream.getAudioTracks().forEach(track => audio.srcObject.addTrack(track));
-							}
-							console.log('open?', call.open);
-						});
-
-						let conn = peer.connect(peerid);
-						conn.on('open', () => {
-							conn.on('data', (data: string) => {
-								setUsersInRoom([...usersInRoomFromFetch, data]);
-							});
-							conn.send(username);
-						});
-						conn.on('error', (e) => {
-							console.log('conn error', e);
-						});
-						setDataChannelConnection(conn);
-					}
-				});
 			}, rejection => {
 				console.error("microphone rejected");
 				router.push('/home');
@@ -152,13 +106,10 @@ export default function Room() {
 					if (res.status == 200) {
 						console.log('joinroom api status 200');
 						let { peerids, username } = await res.json();
-						// because setState is async, we have to pass in a temporary current value for 
-						// the usersInRoom into ChangeMicrophoneState, IDK if this would be ideal but if
-						// I don't do this, I would have to write another useEffect to reload our component 
-						// whenever usersInRoom actually updates
-						setUsersInRoom([...usersInRoom, username]);
+						setUser(username);
+						setPeerids(peerids);
 
-						ChangeMicrophoneState(peerids, username, [...usersInRoom, username]);
+						ChangeMicrophoneState();
 
 						if (MicrophoneMediaStream !== null) 
 							setLoaded(true);
@@ -186,11 +137,102 @@ export default function Room() {
 		}
 	}, [glbl.authenticated, peer]);
 
-	// this is to stop the microphone once the user has left the audio room
 	useEffect(() => {
-			return () => {
-				MicrophoneMediaStream?.getAudioTracks().forEach(track => track.stop());
-			};
+		if (MicrophoneMediaStream !== null && peerids.length > 0) {
+			peer.on('call', (call) => {
+				call.on('error', (e) => {
+					console.error('ERROR', e);
+				});
+				call.answer(MicrophoneMediaStream);
+				console.log('somebody called me');
+				call.on('stream', (remoteStream: MediaStream) => {
+					if (audio.srcObject === null) {
+						audio.srcObject = remoteStream;
+					}
+					else {
+						remoteStream.getAudioTracks().forEach(track => audio.srcObject.addTrack(track));
+					}
+					console.log('open?', call.open);
+				});
+			});
+
+			peer.on('connection', (conn) => {
+				conn.on('open', () => {
+					conn.on('data', (data: DataChannelDataType) => {
+						if (data.disconnected === false) {
+							console.log('connecting', data.name);
+							dataChannelConnections.set(data.name, conn);
+						}
+						else {
+							console.log('disconnecting', data.name);
+							dataChannelConnections.delete(data.name);
+						}
+						// we create a new map in order to trigger a rerender
+						setDataChannelConnections(new Map(dataChannelConnections.entries()));
+					});
+					console.log('user', user);
+					conn.send({name: user, disconnected: false});
+				});
+				conn.on('error', (e) => {
+					console.log('conn error', e);
+				});
+			});
+
+			peerids.forEach((peerid) => {
+				if (peerid != peer.id) {
+					let call = peer.call(peerid, MicrophoneMediaStream);
+					call.on('error', (e) => {
+						console.error(e);
+					});
+					call.on('stream', (remoteStream: MediaStream) => {
+						if (audio.srcObject === null) {
+							audio.srcObject = remoteStream;
+						}
+						else {
+							remoteStream.getAudioTracks().forEach(track => audio.srcObject.addTrack(track));
+						}
+						console.log('open?', call.open);
+					});
+
+					let conn = peer.connect(peerid);
+					conn.on('open', () => {
+						conn.on('data', (data: DataChannelDataType) => {
+							if (data.disconnected === false) {
+								console.log('connecting', data.name);
+								dataChannelConnections.set(data.name, conn);
+							}
+							else {
+								console.log('disconnecting', data.name);
+								dataChannelConnections.delete(data.name);
+							}
+							// we create a new map in order to trigger a rerender
+							setDataChannelConnections(new Map(dataChannelConnections.entries()));
+						});
+						console.log('user', user);
+						conn.send({name: user, disconnected: false});
+					});
+					conn.on('error', (e) => {
+						console.log('conn error', e);
+					});
+				}
+			});
+		}
+	}, [MicrophoneMediaStream, peerids]);
+
+	useEffect(() => {
+		return () => {
+			if (user.length > 0 && dataChannelConnections.size > 0) {
+				for (const key of Array.from(dataChannelConnections.keys())) {
+					dataChannelConnections.get(key).send({name: user, disconnected: true});
+				}
+			}
+		}
+	}, [user]);
+
+	useEffect(() => {
+		return () => {
+			MicrophoneMediaStream?.getAudioTracks().forEach(track => track.stop());
+		};
 	}, [MicrophoneMediaStream]);
 
 	// this is to stop all audio from playing once user has left
@@ -201,11 +243,20 @@ export default function Room() {
 			}
 		}
 	}, [audio]);
+
 	return (
 		Loaded !== null && glbl.authenticated === true ?
 			<div className='h-screen bg-black flex flex-col items-center'>
+				<div className='text-white text-4xl'>{log}</div>
 				<ul className='text-white overflow-y-auto w-full overflow-x-hidden h-full text-center'>
-					{ usersInRoom.map((user, index) => <li key={index} className='p-2 m-1'>{user}</li>) }
+					<li className='p-2 m-1'>{user}</li>
+					{ 
+						Array.from(dataChannelConnections.keys()).map((peer, index) => 
+							<li key={index} className='p-2 m-1'>
+								{peer}
+							</li>
+						) 
+					}
 				</ul>
 				<div className='flex justify-center'>
 					<button 

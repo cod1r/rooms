@@ -168,7 +168,7 @@ export default function Home() {
 
 	return (
 		<div className='h-full text-white bg-black'>
-			<div className='p-1 sticky left-0 top-0'>
+			<div className='p-1'>
 				<div className='grid grid-cols-4'>
 					<Link href='/profile'>
 						<a className='p-2 text-center focus:ring focus:ring-white'>
