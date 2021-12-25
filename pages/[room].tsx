@@ -260,17 +260,17 @@ export default function Room() {
 				</ul>
 				<div className='flex justify-center'>
 					<button 
-						className='p-2 m-2 bg-white rounded-sm' 
+						className='p-2 m-2 bg-white rounded' 
 						onClick={() => {router.push('/home');}}>
 						Leave room
 					</button>
 					<button 
-						className='p-2 m-2 bg-white rounded-sm'
+						className='p-2 m-2 bg-white rounded'
 						onClick={() => ChangeMicrophoneState()}>
 						{ MicMuted ? <s>Microphone</s> : <>Microphone</> }
 					</button>
 					<button
-						className='p-2 m-2 bg-white rounded-sm'
+						className='p-2 m-2 bg-white rounded'
 						onClick={ChangeAudioState}>
 						{ audioMuted === null || audioMuted ? <s>Sound</s> : <>Sound</> }
 					</button>

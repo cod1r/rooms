@@ -26,7 +26,7 @@ export default function User() {
 		<div 
 			className='bg-black h-full flex flex-col items-center justify-center'>
 			<Link href='/home'>
-				<a className='text-white hover:underline italic'>Home</a>
+				<a className='text-black bg-white hover:underline rounded p-2'>Home</a>
 			</Link>
 			<div className='h-5/6 w-1/2'>
 				<div className='text-center flex justify-center m-1'>

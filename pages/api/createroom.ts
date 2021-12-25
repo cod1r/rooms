@@ -3,12 +3,15 @@ import { pool } from '../../database/databaseinit';
 import jwt from 'jsonwebtoken';
 
 export default function createroom(req : NextApiRequest, res : NextApiResponse) {
-	let room_info = JSON.parse(req.body);
+	// TODO: implement the feature to name custom rooms for users that
+	// pay a premium price
 	let cookies = req.cookies;
 	let token = cookies['rememberme'];
 	jwt.verify(token, process.env.private_key, (err, decoded) => {
 		if (err) {
 			console.log(err);
+			res.statusCode = 500;
+			res.send({});
 			return;
 		}
 		// assuming passwords hash to a unique value
@@ -17,30 +20,22 @@ export default function createroom(req : NextApiRequest, res : NextApiResponse) 
 			if (err) {
 				connection.release();
 				console.log(err);
+				res.statusCode = 500;
+				res.send({});
 				return;
 			}
-			connection.query('SELECT COUNT(ROOMNAME) FROM Rooms WHERE ROOMNAME = ?', [room_info['roomname']], (err, results, fields) => {
-				if (err) {
-					connection.release();
-					console.log(err);
-					return;
+			connection.query(
+				'INSERT INTO Rooms (RoomName) VALUES(?)', 
+				[decoded.username + '\'s room'], 
+				(err, results, fields) => {
+					if (err) {
+						console.log(err);
+						return;
+					}
+					res.statusCode = 200;
+					res.send({roomname: decoded.username + '\'s room'});
 				}
-				// we only allow people to create a room only if the roomname doesn't already exist
-				if (results[0]['COUNT(ROOMNAME)'] === 0) {
-					connection.query('INSERT INTO Rooms (RoomName) VALUES(?)', [room_info['roomname']], (err, results, fields) => {
-						if (err) {
-							console.log(err);
-							return;
-						}
-						res.statusCode = 200;
-						res.send({});
-					});
-				}
-				else {
-					res.statusCode = 401;
-					res.send({});
-				}
-			});
+			);
 			connection.release();
 		});
 	});

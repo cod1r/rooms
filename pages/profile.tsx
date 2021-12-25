@@ -35,7 +35,7 @@ function FriendsList(props: { friends: Array<string> }) {
 					props.friends.map((f, index) => 
 						<li key={index} className='w-full'>
 							<Link href={`user/${f}`}>
-								<a className='hover:underline'>{f}</a>
+								<a className='underline'>{f}</a>
 							</Link>
 						</li>
 					) 
@@ -102,7 +102,7 @@ export default function Profile() {
 	return (
 		<div className='text-white bg-black h-full flex flex-col items-center justify-center'>
 			<Link href='/home'>
-				<a className='hover:underline'>Home</a>
+				<a className='rounded bg-white text-black p-2 hover:underline'>Home</a>
 			</Link>
 			<div className=' h-5/6 w-1/2 rounded-sm flex flex-col'>
 				<div className='text-center flex justify-center m-1'>
@@ -119,7 +119,8 @@ export default function Profile() {
 								text-black
 								resize-none 
 								p-1 
-								outline-none' 
+								outline-none
+								rounded' 
 							onChange={(e) => setTextArea(e.target.value)} 
 							rows={10} 
 							cols={50} 
@@ -132,9 +133,10 @@ export default function Profile() {
 					<button 
 						className='
 							p-2 
-							bg-black 
+							bg-white 
+							text-black
 							m-1 
-							rounded-sm 
+							rounded 
 							hover:underline' 
 						onClick={editprofile}>
 						{editMode === false ? 'edit profile':'submit'}
@@ -142,7 +144,7 @@ export default function Profile() {
 					{ 
 						editMode ? 
 						<button 
-							className='hover:underline' 
+							className='bg-white text-black p-2 m-1 hover:underline rounded' 
 							onClick={() => setEditMode(false)}>
 							cancel
 						</button>

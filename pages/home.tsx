@@ -5,20 +5,17 @@ import Link from 'next/link';
 
 function CreateRoomForm() {
 	let glbl = useContext(GLOBALS);
-	let [roomname, setRoomName] = useState('');
 	let create_room_handler = (e: React.FormEvent) => {
 		e.preventDefault();
 		let controller = new AbortController();
 		let timeoutID = setTimeout(() => controller.abort(), 5000);
 		fetch('api/createroom', {
 			method: 'POST',
-			body: JSON.stringify({
-				roomname: roomname,
-			}),
 			signal: controller.signal
-		}).then((res) => {
+		}).then(async (res) => {
 			clearTimeout(timeoutID);
 			if (res.status == 200) {
+				let { roomname } = await res.json();
 				router.push(roomname);
 				console.log('room created');
 				glbl.setInRoom(true);
@@ -29,26 +26,17 @@ function CreateRoomForm() {
 		});
 	};
 	return (
-			<div className='bg-black mt-1 rounded-sm flex justify-center h-full'>
-				<form className='w-full text-center grid place-items-center md:w-1/3'>
-					<div className='w-full'>
-						<label htmlFor='roomname' className='block text-2xl mb-1'>Room name</label>
-						<input 
-							onChange={(e) => setRoomName(e.target.value)}
-							className='rounded-sm p-1 w-4/5 outline-none text-black' 
-							type='text' 
-							name='roomname'
-							value={roomname}
-							placeholder='your room name'/>
-						<div className='m-1'>
-							<button 
-								className='text-2xl rounded-sm hover:underline' 
-								onClick={create_room_handler}>
-								create room
-							</button>
-						</div>
+			<div className='bg-black flex items-center justify-center h-full'>
+				<div className='grid grid-rows-2'>
+					<div className='text-2xl text-center m-2'>
+						Are you sure?
 					</div>
-				</form>
+					<button 
+						className='bg-white text-black rounded hover:underline'
+						onClick={create_room_handler}>
+						yes, create my room
+					</button>
+				</div>
 			</div>
 	);
 }
@@ -118,12 +106,12 @@ function Search() {
 					type='search' 
 					placeholder={`search for a ${option}...`} 
 					value={query}/>
-				<button 
-					onClick={getData} 
-					className=' p-1 rounded-sm m-2 hover:underline'>
-					search
-				</button>
 			</div>
+			<button 
+				onClick={getData} 
+				className='m-1 p-1 bg-white text-black rounded hover:underline focus:underline'>
+				search
+			</button>
 			<div>
 				<div 
 					className='text-2xl '>
@@ -171,22 +159,22 @@ export default function Home() {
 			<div className='p-1'>
 				<div className='grid grid-cols-4'>
 					<Link href='/profile'>
-						<a className='p-2 text-center focus:ring focus:ring-white'>
+						<a className='p-2 text-center bg-white text-black rounded hover:underline m-1 focus:underline'>
 							profile
 						</a>
 					</Link>
 					<button 
-						className='p-2 focus:ring focus:ring-white' 
+						className='bg-white text-black rounded hover:underline m-1 focus:underline' 
 						onClick={() => setComponent(<Search/>)}>
 						search
 					</button>
 					<button 
-						className='p-2 focus:ring focus:ring-white' 
+						className='bg-white text-black rounded hover:underline m-1 focus:underline' 
 						onClick={() => setComponent(<PublicRooms/>)}>
 						public
 					</button>
 					<button 
-						className='p-2 focus:ring focus:ring-white' 
+						className='bg-white text-black rounded hover:underline m-1 focus:underline' 
 						onClick={() => setComponent(<CreateRoomForm/>)}>
 						create
 					</button>
