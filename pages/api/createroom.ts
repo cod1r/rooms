@@ -29,14 +29,27 @@ export default function createroom(req : NextApiRequest, res : NextApiResponse) 
 				[decoded.username + '\'s room'], 
 				(err, results, fields) => {
 					if (err) {
+						try {
+							connection.release();
+						}
+						catch (e) {
+							console.error('bro', e);
+						}
 						console.log(err);
+						res.statusCode = 500;
+						res.send({});
 						return;
 					}
 					res.statusCode = 200;
 					res.send({roomname: decoded.username + '\'s room'});
 				}
 			);
-			connection.release();
+			try {
+				connection.release();
+			}
+			catch (e) {
+				console.error('bro', e);
+			}
 		});
 	});
 }

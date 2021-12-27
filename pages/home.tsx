@@ -176,7 +176,7 @@ export default function Home() {
 					<button 
 						className='bg-white text-black rounded hover:underline m-1 focus:underline' 
 						onClick={() => setComponent(<CreateRoomForm/>)}>
-						create
+						join
 					</button>
 				</div>
 			</div>
