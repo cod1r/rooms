@@ -24,8 +24,8 @@ export default function register(req : NextApiRequest, res : NextApiResponse) {
 				// we check if username already exists
 				if (results[0]['COUNT(USERNAME)'] === 0) {
 					connection.query(
-						'INSERT INTO Users (email, username, password) VALUES (?, ?, ?)', 
-						[credentials.email, credentials.username, hash], 
+						'INSERT INTO Users (email, username, password) VALUES (?, ?, ?); INSERT INTO Rooms (RoomName, PersonCount) VALUES(?, ?)', 
+						[credentials.email, credentials.username, hash, `${credentials.username}'s room`, 0], 
 						(err, results, fields) => {
 							if (err) {
 								console.log(err);

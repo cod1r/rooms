@@ -1,186 +1,144 @@
-import { useEffect, useState, useContext, ReactElement } from 'react';
-import router from 'next/router';
-import { GLOBALS } from '../contexts/globals';
+import { useEffect, useState, Dispatch, SetStateAction } from 'react';
 import Link from 'next/link';
 
-function CreateRoomForm() {
-	let glbl = useContext(GLOBALS);
-	let create_room_handler = (e: React.FormEvent) => {
-		e.preventDefault();
+function FriendsList(props: { friends: Array<string> }) {
+	let [filter, setFilter] = useState('');
+
+	return (
+		<div className='h-4/5 w-1/2 flex flex-col items-center'>
+			<div className=' text-2xl'>
+				friends
+			</div>
+			<input 
+				className='outline-none p-1 rounded-sm m-1 text-black' 
+				type='text' 
+				onChange={(e) => setFilter(e.target.value)} 
+				value={filter} 
+				placeholder='filter names'/>
+			<ul className='text-center rounded-sm mt-1 w-full'>
+				{ 
+					filter.length === 0 ? 
+					props.friends?.map((f, index) => 
+						<li key={index} className='w-full'>
+							<Link href={`user/${f}`}>
+								<a className='underline'>{f}</a>
+							</Link>
+						</li>
+					) 
+						: 
+					props.friends.filter((f: string) => f.includes(filter)) 
+				}
+			</ul>
+		</div>
+	);
+}
+
+export default function Profile() {
+	let [username, setUsername]: [string, Dispatch<SetStateAction<string>>] = useState('');
+	let [bio, setBio]: [string, Dispatch<SetStateAction<string>>] = useState('');
+	let [textAreaValue, setTextArea]: [string, Dispatch<SetStateAction<string>>] = useState('');
+	let [editMode, setEditMode]: [boolean, Dispatch<SetStateAction<boolean>>] = useState(Boolean(false));
+	let [friends, setFriends] = useState([]);
+	useEffect(() => {
 		let controller = new AbortController();
-		let timeoutID = setTimeout(() => controller.abort(), 5000);
-		fetch('api/createroom', {
+		let timeoutid = setTimeout(() => controller.abort(), 5000);
+
+		fetch('/api/myinfo', {
 			method: 'POST',
 			signal: controller.signal
 		}).then(async (res) => {
-			clearTimeout(timeoutID);
-			if (res.status == 200) {
-				let { roomname } = await res.json();
-				router.push(roomname);
-				console.log('room created');
-				glbl.setInRoom(true);
-			}
-			else {
-				// TODO: handle our rejection
-			}
+			clearTimeout(timeoutid);
+			let { username, bio, friends } = await res.json();
+			setFriends(friends);
+			setUsername(username);
+			setBio(bio);
 		});
+
+	}, []);
+
+	let editprofile = () => {
+		if (editMode === false) {
+			setEditMode(true);
+			setTextArea(bio);
+		}
+		else {
+			let controller = new AbortController();
+			let timeoutid = setTimeout(() => controller.abort(), 5000);
+			fetch('/api/editprofile', {
+				method: 'POST',
+				body: JSON.stringify({
+					bio: textAreaValue
+				}),
+				signal: controller.signal
+			}).then(res => {
+				clearTimeout(timeoutid);
+				setBio(textAreaValue);
+				setEditMode(false);
+			});
+		}
 	};
+
 	return (
-			<div className='bg-black flex items-center justify-center h-full'>
-				<div className='grid grid-rows-2'>
-					<div className='text-2xl text-center m-2'>
-						Are you sure?
-					</div>
-					<button 
-						className='bg-white text-black rounded hover:underline'
-						onClick={create_room_handler}>
-						yes, create my room
-					</button>
-				</div>
-			</div>
-	);
-}
-
-
-function Search() {
-	let [option, setOption] = useState('room');
-	let [results, setResults] = useState([]);
-	let [query, setQuery] = useState('');
-
-	let getData = (e: React.MouseEvent) => {
-		let controller = new AbortController();
-		let timeoutID = setTimeout(() => controller.abort(), 5000);
-		fetch(option === 'user' ? 'api/getusers' : 'api/getrooms', {
-			method: 'POST',
-			body: JSON.stringify({
-				querytype: 'search',
-				search: query
-			}),
-			signal: controller.signal
-		}).then(async (res) => {
-			clearTimeout(timeoutID);
-
-			if (option === 'room') {
-				let { rooms } = await res.json();
-				setResults(rooms);
-			}
-			else {
-				let { buddies } = await res.json();
-				setResults(buddies);
-			}
-		});
-	}
-	return (
-		<div className='text-center'>
-			<span className='m-2'>
-				<input 
-					onChange={() => setOption('room')} 
-					type='radio' 
-					id='room' 
-					name='searchvalue' 
-					value='room' 
-					checked={option === 'room'}/>
-				<label 
-					className='' 
-					htmlFor='room'>
-					room
-				</label>
-			</span>
-			<span className='m-2'>
-				<input 
-					onChange={() => setOption('user')} 
-					type='radio' 
-					id='user' 
-					name='searchvalue' 
-					value='user' />
-				<label 
-					className='' 
-					htmlFor='user'>
-					user
-				</label>
-			</span>
-			<div>
-				<input 
-					onChange={(e) => setQuery(e.target.value)} 
-					className='p-1 rounded-sm outline-none text-black' 
-					type='search' 
-					placeholder={`search for a ${option}...`} 
-					value={query}/>
-			</div>
-			<button 
-				onClick={getData} 
-				className='m-1 p-1 bg-white text-black rounded hover:underline focus:underline'>
-				search
-			</button>
-			<div>
+		<div 
+			className='text-white bg-cyan-600 h-full flex flex-col items-center justify-center'>
+			<div 
+				className=' h-5/6 w-1/2 rounded-sm flex flex-col items-center'>
+				<Link href='/inbox'>
+					<a className='underline'>inbox</a>
+				</Link>
+				<Link href={`/${username}/room/${username}'s room`}>
+					<a className='underline'>join my room</a>
+				</Link>
 				<div 
-					className='text-2xl '>
-					Results
+					className='text-2xl font-bold text-center flex justify-center m-1'>
+					{username}
 				</div>
-				<ul>
-					{ 
-						option === 'room' ?
-						results.map((res, index) => 
-							<li key={index} className=''>
-								<Link href={`/${res}`}>
-									<a className='hover:underline'>{res}</a>
-								</Link>
-							</li>
-						) 
-						:
-						results.map((res, index) =>
-							<li key={index} className=''>
-								<Link href={`user/${res}`}>
-									<a className='hover:underline'>{res}</a>
-								</Link>
-							</li>
-						)
+				<div className='break-words w-full md:w-1/2 text-center border-2 border-cyan-800 rounded'>
+					{
+						editMode === false ? 
+						bio 
+						: 
+						<textarea 
+							className='
+								text-black
+								resize-none 
+								p-1 
+								outline-none
+								rounded' 
+							onChange={(e) => setTextArea(e.target.value)} 
+							maxLength={200}
+							value={textAreaValue}>
+							{textAreaValue}
+						</textarea>
 					}
-				</ul>
-			</div>
-		</div>
-	);
-}
-
-// maybe just show top public rooms
-function PublicRooms(): ReactElement {
-	return (
-		<div className=''>
-			<div className='text-2xl text-center'>random public rooms</div>
-		</div>
-	);
-}
-
-export default function Home() {
-	let [component, setComponent] = useState(<PublicRooms/>);
-
-	return (
-		<div className='h-full text-white bg-black'>
-			<div className='p-1'>
-				<div className='grid grid-cols-4'>
-					<Link href='/profile'>
-						<a className='p-2 text-center bg-white text-black rounded hover:underline m-1 focus:underline'>
-							profile
-						</a>
-					</Link>
+				</div>
+				<div className='flex justify-center'>
 					<button 
-						className='bg-white text-black rounded hover:underline m-1 focus:underline' 
-						onClick={() => setComponent(<Search/>)}>
-						search
+						className='
+							p-1 
+							bg-white 
+							text-black
+							m-1 
+							rounded 
+							hover:underline' 
+						onClick={editprofile}>
+						{editMode === false ? 'edit bio':'submit'}
 					</button>
-					<button 
-						className='bg-white text-black rounded hover:underline m-1 focus:underline' 
-						onClick={() => setComponent(<PublicRooms/>)}>
-						public
-					</button>
-					<button 
-						className='bg-white text-black rounded hover:underline m-1 focus:underline' 
-						onClick={() => setComponent(<CreateRoomForm/>)}>
-						join
-					</button>
+					{ 
+						editMode ? 
+						<button 
+							className='bg-white text-black p-2 m-1 hover:underline rounded' 
+							onClick={() => setEditMode(false)}>
+							cancel
+						</button>
+						:
+						null
+					}
+				</div>
+				<div className='flex justify-center'>
+					<FriendsList friends={friends}/>
 				</div>
 			</div>
-			{ component }
 		</div>
 	);
-}
+};

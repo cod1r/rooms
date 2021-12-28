@@ -15,7 +15,7 @@ function MyApp({ Component, pageProps }) {
 			controller.abort(); 
 			console.log('timeout function called; cannot authenticate'); 
 		}, 5000);
-		fetch('api/authenticate', {
+		fetch('/api/authenticate', {
 			method: 'POST',
 			signal: controller.signal
 		}).then(async (res) => {
@@ -25,12 +25,11 @@ function MyApp({ Component, pageProps }) {
 				if (router.pathname === '/') {
 					await router.push('/home');
 				}
-				setLoaded(true);
 			}
-			else {
+			else if (router.pathname !== '/register' && router.pathname !== '/login') {
 				router.push('/');
-				setLoaded(true);
 			}
+			setLoaded(true);
 		}).catch((err) => console.error(err));
 	}, []);
 	return (

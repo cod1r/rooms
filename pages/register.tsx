@@ -23,7 +23,7 @@ export default function Register() {
 		});
 	};
 	return (
-		<div className='bg-black h-full w-full grid place-items-center'>
+		<div className='bg-cyan-600 h-full w-full grid place-items-center'>
 			<form className='w-full grid place-items-center'>
 				<label className='w-full md:w-1/2 flex flex-col items-center'>
 					<div className='text-white md:text-2xl'>Email (not required)</div>
@@ -36,7 +36,7 @@ export default function Register() {
 						onChange={(e) => setEmail(e.target.value)}/>
 				</label>
 				<label className='w-full md:w-1/2 flex flex-col items-center'>
-					<div className='md:text-2xl'>Username</div>
+					<div className='md:text-2xl text-white'>Username</div>
 					<input 
 						className='outline-none w-1/2 rounded-sm p-3 m-2' 
 						type='text' 
@@ -46,7 +46,7 @@ export default function Register() {
 						onChange={(e) => setUsername(e.target.value)}/>
 				</label>
 				<label className='w-full md:w-1/2 flex flex-col items-center'>
-					<div className='md:text-2xl'>Password</div>
+					<div className='md:text-2xl text-white'>Password</div>
 					<input 
 						className='outline-none w-1/2 rounded-sm p-3 m-2' 
 						type='password' 
