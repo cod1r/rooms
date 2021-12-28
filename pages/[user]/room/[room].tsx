@@ -10,7 +10,7 @@ interface DataChannelDataType {
 }
 
 // TODO: close all mediaStream connections
-let Video = (props: {peer: string, className?: string, keyprop: number, mediaStream: MediaStream, muted: boolean}) => {
+let Video = (props: {peer: string, className?: string, key: number, mediaStream: MediaStream, muted: boolean}) => {
 	let [isFullScreen, setIsFullScreen] = useState(false);
 	let VideoRef = useRef(null);
 	let ContainerRef = useRef(null);
@@ -26,7 +26,7 @@ let Video = (props: {peer: string, className?: string, keyprop: number, mediaStr
 		};
 	}, [props.mediaStream]);
 	return (
-		<div ref={ContainerRef} key={props.keyprop} className='bg-cyan-500 relative h-80 w-80 rounded grid place-items-center z-50'>
+		<div ref={ContainerRef} key={props.key} className='bg-cyan-500 relative h-80 w-80 rounded grid place-items-center z-50'>
 			<div className='absolute grid place-items-center z-0'>
 				<div className='text-white'>{props.peer}</div>
 			</div>
@@ -124,14 +124,28 @@ export default function Room() {
 	}, [glbl.authenticated, peer]);
 
 	useEffect(() => {
-		if (peer !== null && renegotiate === true) {
-			// closes all mediaConnections and dataChannels
-			mediaConnections.forEach(mediaConnection => mediaConnection.close());
-			mediaConnections = [];
-			Array.from(dataChannelConnections.values()).forEach(conn => conn.close());
-			dataChannelConnections = new Map();
-			peerStreams = [];
+		// closes all mediaConnections and dataChannels
+		setMediaConnections(
+			pmc => {
+				pmc.forEach(mediaConnection => mediaConnection.close())
+				return pmc;
+			}
+		);
+		setMediaConnections([]);
+		setDataChannelConnections(
+			pdc => {
+				Array.from(pdc.values()).forEach(conn => conn.close());
+				return pdc;
+			}
+		);
+		setDataChannelConnections(new Map());
+		setPeerStreams(ps => {
+			ps.forEach(s => s.close());
+			return ps;
+		});
+		setPeerStreams([]);
 
+		if (peer !== null && renegotiate === true) {
 			let { room } = router.query;
 			let controller = new AbortController();
 			let timeoutid_2 = setTimeout(() => {
@@ -173,17 +187,21 @@ export default function Room() {
 						console.error(e);
 					});
 					call.on('stream', (remoteStream: MediaStream) => {
-						setPeerStreams([...peerStreams, remoteStream]);
+						setPeerStreams(p => [...p, remoteStream]);
 						console.log('open?', call.open);
 					});
-					setMediaConnections([...mediaConnections, call]);
+					setMediaConnections(m => [...m, call]);
 
 					let conn = peer.connect(peerid);
 					conn.on('open', () => {
 						conn.on('data', (data: DataChannelDataType) => {
-							dataChannelConnections.set(data.name, conn);
 							// we create a new map in order to trigger a rerender
-							setDataChannelConnections(new Map(dataChannelConnections.entries()));
+							setDataChannelConnections(
+								(prevDataChannelConnections) => {
+									prevDataChannelConnections.set(data.name, conn);
+									return new Map(prevDataChannelConnections.entries())
+								}
+							);
 						});
 						conn.send({name: user});
 					});
@@ -200,7 +218,7 @@ export default function Room() {
 				call.answer(_MEDIA_STREAM_);
 				console.log('somebody called me');
 				call.on('stream', (remoteStream: MediaStream) => {
-					setPeerStreams([...peerStreams, remoteStream]);
+					setPeerStreams(p => [...p, remoteStream]);
 					console.log('open?', call.open);
 				});
 			});
@@ -209,17 +227,21 @@ export default function Room() {
 				conn.on('open', () => {
 					conn.on('data', (data: DataChannelDataType) => {
 						conn.on('close', () => {
-							setDataChannelConnections(
+							setDataChannelConnections(pdc =>
 								new Map(
-									Array.from(dataChannelConnections.entries()).filter(
+									Array.from(pdc.entries()).filter(
 										keyValuePair => keyValuePair[1].peer !== conn.peer
 									)
 								)
 							);
 						});
-						dataChannelConnections.set(data.name, conn);
 						// we create a new map in order to trigger a rerender
-						setDataChannelConnections(new Map(dataChannelConnections.entries()));
+						setDataChannelConnections(
+							(prevDataChannelConnections) => {
+								prevDataChannelConnections.set(data.name, conn);
+								return new Map(prevDataChannelConnections.entries())
+							}
+						);
 					});
 					conn.send({name: user});
 				});
@@ -232,7 +254,6 @@ export default function Room() {
 
 	useEffect(() => {
 		if (screenState === true && peerIds !== null && peer !== null) {
-			peerStreams = [];
 			navigator.mediaDevices.getDisplayMedia({ audio: true, video: true }).then(mediaStream => {
 				setMediaStream(mediaStream);
 				setRenegotiate(true);
@@ -263,7 +284,6 @@ export default function Room() {
 
 	useEffect(() => {
 		if (videoState === true && peerIds !== null && peer !== null) {
-			peerStreams = [];
 			navigator.mediaDevices.getUserMedia({ audio: true, video: true }).then(mediaStream => {
 				setMediaStream(mediaStream);
 				setRenegotiate(true);
@@ -292,11 +312,11 @@ export default function Room() {
 				<div className='h-full w-full text-white grid auto-rows-min auto-cols-min grid-flow-row'>
 					{ 
 						Array.from(dataChannelConnections.keys()).map((peer, index) => 
-							<Video peer={peer} muted={false} keyprop={index} mediaStream={peerStreams[index]}/>
+							<Video peer={peer} muted={false} key={index} mediaStream={peerStreams[index]}/>
 						) 
 					}
 				</div>
-				<Video peer={user} keyprop={-1} mediaStream={_MEDIA_STREAM_} muted={true}/>
+				<Video peer={user} key={-1} mediaStream={_MEDIA_STREAM_} muted={true}/>
 				<div className='flex justify-center sticky bottom-0'>
 					<button 
 						className='p-2 m-2 bg-white rounded shadow-md' 

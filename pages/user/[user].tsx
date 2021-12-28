@@ -54,7 +54,7 @@ export default function User() {
 							if (isFriend === true) { 
 								return <div>
 									<Link href={`room/${username}'s room`}>
-										<a>join {username}'s room</a>
+										<a>{`join {username}&apos;s room`}</a>
 									</Link>
 								</div>
 							}
