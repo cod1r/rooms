@@ -1,68 +1,96 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { pool } from '../../database/databaseinit';
 import jwt from 'jsonwebtoken';
-// TODO: merge all sql queries into just one big nested SQL query
+
 export default function joinroom(req: NextApiRequest, res: NextApiResponse) {
 	console.log('joinroom api called');
 	if ('cookie' in req.headers) {
-		let room_info = JSON.parse(req.body);
+		let body = JSON.parse(req.body);
+		console.log(body);
 		let cookies = req.cookies;
 		let token = cookies['rememberme'];
 		jwt.verify(token, process.env.private_key, (err, decoded) => {
 			if (err) {
+				res.statusCode = 500;
+				res.send({});
 				console.log(err);
 				return;
 			}
 			pool.getConnection((err, connection) => {
 				if (err) {
-					try { connection.release(); } catch (e) { console.log('after release', e) };
+					try {
+						connection.release();
+					} catch (e) {
+						console.log('after release', e);
+					}
+					res.statusCode = 500;
+					res.send({});
 					console.log(err);
 					return;
 				}
-				connection.query('SELECT COUNT(ROOMNAME) FROM Rooms WHERE ROOMNAME = ?', [room_info['roomname']], (err, results, fields) => {
-					if (err) {
-						try { connection.release(); } catch (e) { console.log('after release', e) };
-						console.log(err);
-						return;
-					}
-					if (results[0]['COUNT(ROOMNAME)'] === 1) {
-						connection.query('DELETE FROM PersonInRoom WHERE USERID = (SELECT ID FROM Users WHERE password = ?)', [decoded['password']], (err, results, fields) => {
-							if (err) {
-								try { connection.release(); } catch (e) { console.log('after release', e) };
-								console.log(err);
-								return;
-							}
-						});
-						connection.query('INSERT INTO PersonInRoom (USERID, ROOMNAME, PEERID) VALUES ((SELECT ID FROM Users WHERE password = ?) , ?, ?)', 
-							[decoded.password, room_info['roomname'], room_info['id']], (err, results1, fields) => {
-								if (err) {
-									try { connection.release(); } catch (e) { console.log('after release', e) };
-									console.log(err);
-									return;
-								}
-								connection.query('SELECT PEERID FROM PersonInRoom INNER JOIN Users ON PersonInRoom.USERID = Users.ID WHERE ROOMNAME = ?', 
-									[room_info['roomname']], 
-									(err, results, fields) => {
-										if (err) {
-											try { connection.release(); } catch (e) { console.log('after release', e) };
-											console.log(err);
-											return;
+				connection.query(
+					`
+					SELECT COUNT(USERNAME) FROM Users WHERE ID IN (
+						SELECT FriendID FROM Friends WHERE USERID = (
+							SELECT ID FROM Users WHERE USERNAME = ?
+						)
+					) AND USERNAME = ?
+					`,
+					[body.user, decoded.username],
+					(err, results, fields) => {
+						if (err) {
+							console.error(err);
+							res.statusCode = 500;
+							res.send({});
+							return;
+						}
+						if (
+							results[0]['COUNT(USERNAME)'] === 1 ||
+							body.user === decoded.username
+						) {
+							connection.query(
+								`
+								DELETE FROM PersonInRoom WHERE USERID = (SELECT ID FROM Users WHERE password = ?); 
+								INSERT INTO PersonInRoom (USERID, ROOMNAME, PEERID) VALUES ((SELECT ID FROM Users WHERE password = ?) , ?, ?); 
+								SELECT PEERID FROM PersonInRoom INNER JOIN Users ON PersonInRoom.USERID = Users.ID WHERE ROOMNAME = ?
+								`,
+								[
+									decoded.password,
+									decoded.password,
+									body['roomname'],
+									body['id'],
+									body['roomname'],
+								],
+								(err, results1, fields) => {
+									if (err) {
+										try {
+											connection.release();
+										} catch (e) {
+											console.log('after release', e);
 										}
-										res.statusCode = 200;
-										res.send({
-											'peerids': results.map((result) => result['PEERID']),
-											'username': decoded.username
-										});
-								});
-							});
-						try { connection.release(); } catch (e) { console.log('after release', e) };
+										res.statusCode = 500;
+										res.send({});
+										console.log(err);
+										return;
+									}
+									res.statusCode = 200;
+									res.send({
+										peerids: results1[2].map((result) => result['PEERID']),
+										username: decoded.username,
+									});
+								}
+							);
+						} else {
+							res.statusCode = 401;
+							res.send({});
+						}
 					}
-					else {
-						res.statusCode = 401;
-						res.send({});
-						//try { connection.release(); } catch (e) { console.log('after release', e) };
-					}
-				});
+				);
+				try {
+					connection.release();
+				} catch (e) {
+					console.log('after release', e);
+				}
 			});
 		});
 	}

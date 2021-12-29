@@ -16,15 +16,19 @@ export default function leaveroom(req: NextApiRequest, res: NextApiResponse) {
 				console.log(err);
 				return;
 			}
-			connection.query('DELETE FROM PersonInRoom WHERE USERID = (SELECT ID FROM Users WHERE password = ?)', [password], (err, results, fields) => {
-				if (err) {
-					connection.release();
-					console.log(err);
-					return;
-				}
+			connection.query(
+				'DELETE FROM PersonInRoom WHERE USERID = (SELECT ID FROM Users WHERE password = ?)',
+				[password],
+				(err, results, fields) => {
+					if (err) {
+						connection.release();
+						console.log(err);
+						return;
+					}
 					res.statusCode = 200;
 					res.send({});
-			});
+				}
+			);
 			connection.release();
 		});
 	});

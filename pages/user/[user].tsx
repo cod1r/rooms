@@ -14,15 +14,15 @@ export default function User() {
 		fetch('/api/userinfo', {
 			method: 'POST',
 			body: JSON.stringify({
-				username: user
+				username: user,
 			}),
-			signal: controller.signal
-			}).then(async (res) => {
-				clearTimeout(to);
-				let { bio, isFriend } = await res.json();
-				setIsFriend(isFriend);
-				setBio(bio);
-			});
+			signal: controller.signal,
+		}).then(async (res) => {
+			clearTimeout(to);
+			let { bio, isFriend } = await res.json();
+			setIsFriend(isFriend);
+			setBio(bio);
+		});
 	}, []);
 
 	let requestFriend = () => {
@@ -30,47 +30,44 @@ export default function User() {
 			method: 'POST',
 			body: JSON.stringify({
 				type: 'request',
-				username: username
-			})
-		}).then(res => {
+				username: username,
+			}),
+		}).then((res) => {
 			if (res.status === 200) {
 			}
 		});
 	};
 
 	return (
-		<div 
-			className='text-white bg-cyan-600 h-full flex flex-col items-center justify-center'>
-			<div className='h-5/6 w-1/2 rounded flex flex-col items-center'>
-				<div className='text-center flex justify-center m-1 text-2xl'>
-						{username}
+		<div className="text-white bg-cyan-600 h-full flex flex-col items-center justify-center">
+			<div className="h-5/6 w-1/2 rounded flex flex-col items-center">
+				<div className="text-center flex justify-center m-1 text-2xl">
+					{username}
 				</div>
-				<div 
-					className='border-2 border-cyan-800 text-center break-words w-1/2'>
+				<div className="border-2 border-cyan-800 text-center break-words w-full md:w-1/4 rounded">
 					{bio}
 				</div>
-				{
-						(() => {
-							if (isFriend === true) { 
-								return <div>
-									<Link href={`room/${username}'s room`}>
-										<a>{`join {username}&apos;s room`}</a>
-									</Link>
-								</div>
-							}
-							else if (isFriend === false) {
-								return <div>
-									<button 
-										onClick={requestFriend}>
-										request to add as friend
-									</button>
-								</div>
-							}
-							else {
-								return 'Loading...'
-							}
-						})()
-				}
+				{(() => {
+					if (isFriend === true) {
+						return (
+							<div>
+								<Link href={`/${username}/room/${username}'s room`}>
+									<a className="underline">{`join ${username}'s room`}</a>
+								</Link>
+							</div>
+						);
+					} else if (isFriend === false) {
+						return (
+							<div>
+								<button onClick={requestFriend} className="underline">
+									request to add as friend
+								</button>
+							</div>
+						);
+					} else {
+						return 'Loading...';
+					}
+				})()}
 			</div>
 		</div>
 	);

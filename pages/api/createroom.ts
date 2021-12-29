@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { pool } from '../../database/databaseinit';
 import jwt from 'jsonwebtoken';
 
-export default function createroom(req : NextApiRequest, res : NextApiResponse) {
+export default function createroom(req: NextApiRequest, res: NextApiResponse) {
 	// TODO: implement the feature to name custom rooms for users that
 	// pay a premium price
 	let cookies = req.cookies;
@@ -25,14 +25,13 @@ export default function createroom(req : NextApiRequest, res : NextApiResponse) 
 				return;
 			}
 			connection.query(
-				'INSERT INTO Rooms (RoomName) VALUES(?)', 
-				[decoded.username + '\'s room'], 
+				'INSERT INTO Rooms (RoomName) VALUES(?)',
+				[decoded.username + "'s room"],
 				(err, results, fields) => {
 					if (err) {
 						try {
 							connection.release();
-						}
-						catch (e) {
+						} catch (e) {
 							console.error('bro', e);
 						}
 						console.log(err);
@@ -41,13 +40,12 @@ export default function createroom(req : NextApiRequest, res : NextApiResponse) 
 						return;
 					}
 					res.statusCode = 200;
-					res.send({roomname: decoded.username + '\'s room'});
+					res.send({ roomname: decoded.username + "'s room" });
 				}
 			);
 			try {
 				connection.release();
-			}
-			catch (e) {
+			} catch (e) {
 				console.error('bro', e);
 			}
 		});

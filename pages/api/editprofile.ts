@@ -1,4 +1,4 @@
-import {NextApiRequest, NextApiResponse} from "next";
+import { NextApiRequest, NextApiResponse } from 'next';
 import { pool } from '../../database/databaseinit';
 import jwt from 'jsonwebtoken';
 
@@ -11,13 +11,17 @@ export default function editprofile(req: NextApiRequest, res: NextApiResponse) {
 			console.log(err);
 			return;
 		}
-		pool.query('UPDATE Users SET BIO = ? WHERE USERNAME = ?', [body.bio, decoded.username], (err, results, fields) => {
-			if (err) {
-				console.log(err);
-				return;
+		pool.query(
+			'UPDATE Users SET BIO = ? WHERE USERNAME = ?',
+			[body.bio, decoded.username],
+			(err, results, fields) => {
+				if (err) {
+					console.log(err);
+					return;
+				}
+				res.statusCode = 200;
+				res.send({});
 			}
-			res.statusCode = 200;
-			res.send({});
-		});
+		);
 	});
 }
