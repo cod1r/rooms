@@ -7,12 +7,16 @@ export default function register(req: NextApiRequest, res: NextApiResponse) {
 	bcrypt.hash(credentials.password, 10, (err, hash) => {
 		if (err) {
 			console.error(err);
+			res.statusCode = 500;
+			res.send({});
 			return;
 		}
 		pool.getConnection((err, connection) => {
 			if (err) {
 				connection.release();
 				console.error(err);
+				res.statusCode = 500;
+				res.send({});
 				return;
 			}
 			connection.query(
@@ -21,23 +25,31 @@ export default function register(req: NextApiRequest, res: NextApiResponse) {
 				(err, results, fields) => {
 					if (err) {
 						connection.release();
-						console.log(err);
+						console.error(err);
+						res.statusCode = 500;
+						res.send({});
 						return;
 					}
 					// we check if username already exists
 					if (results[0]['COUNT(USERNAME)'] === 0) {
 						connection.query(
-							'INSERT INTO Users (email, username, password) VALUES (?, ?, ?); INSERT INTO Rooms (RoomName, PersonCount) VALUES(?, ?)',
+							`
+							INSERT INTO Users (email, username, password) VALUES (?, ?, ?); 
+							INSERT INTO Rooms (RoomName, RoomType, PersonCount) VALUES(?, ?, ?)
+							`,
 							[
 								credentials.email,
 								credentials.username,
 								hash,
 								`${credentials.username}'s room`,
+								'default',
 								0,
 							],
 							(err, results, fields) => {
 								if (err) {
-									console.log(err);
+									console.error(err);
+									res.statusCode = 500;
+									res.send({});
 									return;
 								}
 								res.statusCode = 200;
@@ -49,6 +61,7 @@ export default function register(req: NextApiRequest, res: NextApiResponse) {
 											console.log(err);
 											return;
 										}
+										res.statusCode = 200;
 										res.setHeader(
 											'Set-Cookie',
 											`rememberme=${token}; Max-Age=${60 * 60 * 24 * 365}`

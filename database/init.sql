@@ -1,12 +1,28 @@
 CREATE TABLE IF NOT EXISTS Users (
 	ID INT auto_increment NOT NULL,
 	email varchar(500) NULL,
-    username varchar(500) NOT NULL UNIQUE,
-    password varchar(500) NOT NULL UNIQUE,
-    bio BLOB NULL
+	username varchar(500) NOT NULL UNIQUE,
+	password varchar(500) NOT NULL UNIQUE,
+	bio BLOB NULL,
+	PRIMARY KEY(ID)
 );
 CREATE TABLE IF NOT EXISTS Rooms (
 	Owner INT auto_increment NOT NULL,
-    RoomName varchar(500) NOT NULL UNIQUE,
-    RoomType INT NOT NULL
+	RoomName varchar(500) NOT NULL,
+	RoomType INT NOT NULL,
+	PersonCount INT NOT NULL,
+	PRIMARY KEY(Owner)
+);
+CREATE TABLE IF NOT EXISTS Friends (
+	USERID INT NOT NULL,
+	FriendID INT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS FriendRequests (
+	RequesterID INT NOT NULL,
+	RequesteeID INT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS PersonInRoom (
+	USERID INT NOT NULL,
+	PEERID VARCHAR(500) NOT NULL,
+	RoomName VARCHAR(500) NOT NULL
 );
