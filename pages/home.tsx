@@ -104,7 +104,6 @@ export default function Profile() {
 			if (res.status === 200) {
 				let { queryResults } = await res.json();
 				setSearchResults(queryResults);
-				console.log(queryResults);
 			}
 		});
 	};

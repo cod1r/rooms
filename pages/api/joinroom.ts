@@ -2,11 +2,16 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { pool } from '../../database/databaseinit';
 import jwt from 'jsonwebtoken';
 
+interface Body {
+	user: string;
+	roomname: string;
+	id: string;
+}
+
 export default function joinroom(req: NextApiRequest, res: NextApiResponse) {
 	console.log('joinroom api called');
 	if ('cookie' in req.headers) {
-		let body = JSON.parse(req.body);
-		console.log(body);
+		let body: Body = JSON.parse(req.body);
 		let cookies = req.cookies;
 		let token = cookies['rememberme'];
 		jwt.verify(token, process.env.private_key, (err, decoded) => {
@@ -39,6 +44,11 @@ export default function joinroom(req: NextApiRequest, res: NextApiResponse) {
 					[body.user, decoded.username],
 					(err, results, fields) => {
 						if (err) {
+							try {
+								connection.release();
+							} catch (e) {
+								console.log('after release', e);
+							}
 							console.error(err);
 							res.statusCode = 500;
 							res.send({});
@@ -51,7 +61,10 @@ export default function joinroom(req: NextApiRequest, res: NextApiResponse) {
 							connection.query(
 								`
 								DELETE FROM PersonInRoom WHERE USERID = (SELECT ID FROM Users WHERE password = ?); 
-								INSERT INTO PersonInRoom (USERID, ROOMNAME, PEERID) VALUES ((SELECT ID FROM Users WHERE password = ?) , ?, ?); 
+								INSERT INTO PersonInRoom (USERID, ROOMNAME, PEERID) VALUES (
+									(SELECT ID FROM Users WHERE password = ?), 
+									?,?
+								); 
 								SELECT PEERID FROM PersonInRoom INNER JOIN Users ON PersonInRoom.USERID = Users.ID WHERE ROOMNAME = ?
 								`,
 								[

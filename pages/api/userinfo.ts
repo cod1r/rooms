@@ -19,6 +19,8 @@ export default function userinfo(req: NextApiRequest, res: NextApiResponse) {
 			(err, results, fields) => {
 				if (err) {
 					console.log(err);
+					res.statusCode = 500;
+					res.send({});
 					return;
 				}
 				res.send({
