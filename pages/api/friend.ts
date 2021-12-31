@@ -60,8 +60,8 @@ export default function addFriend(req: NextApiRequest, res: NextApiResponse) {
 				connection.query(
 					`
 					SELECT COUNT(RequesterID), COUNT(RequesteeID) FROM FriendRequests
-					WHERE RequesterID = (SELECT ID FROM USERS WHERE USERNAME = ?) 
-					AND RequesteeID = (SELECT ID FROM USERS WHERE USERNAME = ?);
+					WHERE RequesterID = (SELECT ID FROM Users WHERE USERNAME = ?) 
+					AND RequesteeID = (SELECT ID FROM Users WHERE USERNAME = ?);
 					`,
 					[decoded.username, body.username],
 					(err, results, fields) => {
