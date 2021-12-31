@@ -23,7 +23,7 @@ const Inbox = () => {
 			if (res.status === 200) {
 				setRequests((prevRequests) => {
 					prevRequests.splice(index, 1);
-					return prevRequests;
+					return [...prevRequests];
 				});
 			}
 		});
@@ -39,7 +39,7 @@ const Inbox = () => {
 			if (res.status === 200) {
 				setRequests((prevRequests) => {
 					prevRequests.splice(index, 1);
-					return prevRequests;
+					return [...prevRequests];
 				});
 			}
 		});

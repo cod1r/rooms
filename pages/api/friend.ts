@@ -50,25 +50,72 @@ export default function addFriend(req: NextApiRequest, res: NextApiResponse) {
 				}
 			);
 		} else if (body.type === 'request') {
-			pool.query(
-				`
-				INSERT INTO FriendRequests (RequesterID, RequesteeID) VALUES (
-					(SELECT ID FROM Users WHERE Username = ?), 
-					(SELECT ID From Users WHERE Username = ?)
-				)
-				`,
-				[decoded.username, body.username],
-				(err, results, fields) => {
-					if (err) {
-						console.error(err);
-						res.statusCode = 500;
-						res.send({});
-						return;
-					}
-					res.statusCode = 200;
+			pool.getConnection((err, connection) => {
+				if (err) {
+					console.error(err);
+					res.statusCode = 500;
 					res.send({});
+					return;
 				}
-			);
+				connection.query(
+					`
+					SELECT COUNT(RequesterID), COUNT(RequesteeID) FROM FriendRequests
+					WHERE RequesterID = (SELECT ID FROM USERS WHERE USERNAME = ?) 
+					AND RequesteeID = (SELECT ID FROM USERS WHERE USERNAME = ?);
+					`,
+					[decoded.username, body.username],
+					(err, results, fields) => {
+						if (err) {
+							try {
+								connection.release();
+							} catch (e) {
+								console.error('after release', e);
+							}
+							console.error(err);
+							res.statusCode = 500;
+							res.send({});
+							return;
+						}
+						if (
+							results[0]['COUNT(RequesterID)'] === 0 &&
+							results[0]['COUNT(RequesteeID)'] === 0
+						) {
+							connection.query(
+								`
+					INSERT INTO FriendRequests (RequesterID, RequesteeID) VALUES (
+						(SELECT ID FROM Users WHERE Username = ?), 
+						(SELECT ID From Users WHERE Username = ?)
+					)
+					`,
+								[decoded.username, body.username],
+								(err, results, fields) => {
+									if (err) {
+										try {
+											connection.release();
+										} catch (e) {
+											console.error('after release', e);
+										}
+										console.error(err);
+										res.statusCode = 500;
+										res.send({});
+										return;
+									}
+									res.statusCode = 200;
+									res.send({});
+								}
+							);
+						} else {
+							res.statusCode = 200;
+							res.send({});
+						}
+					}
+				);
+				try {
+					connection.release();
+				} catch (e) {
+					console.error('after release', e);
+				}
+			});
 		} else if (body.type === 'reject') {
 			pool.query(
 				'DELETE FROM FriendRequests WHERE RequesterID = (SELECT ID FROM Users WHERE USERNAME = ?)',

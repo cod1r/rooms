@@ -117,7 +117,7 @@ export default function Profile() {
 				<Link href="/inbox">
 					<a className="underline">inbox</a>
 				</Link>
-				{username.length > 0 ? (
+				{username?.length > 0 ? (
 					<Link href={`/${username}/room/${username}'s room`}>
 						<a className="underline">join my room</a>
 					</Link>

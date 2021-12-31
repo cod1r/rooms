@@ -5,6 +5,7 @@ export default function User() {
 	let [username, setUsername] = useState('');
 	let [bio, setBio] = useState('');
 	let [isFriend, setIsFriend] = useState(null);
+	let [requested, setRequested] = useState(false);
 	useEffect(() => {
 		let { user } = router.query;
 		// @ts-ignore
@@ -34,6 +35,7 @@ export default function User() {
 			}),
 		}).then((res) => {
 			if (res.status === 200) {
+				setRequested(true);
 			}
 		});
 	};
@@ -59,9 +61,11 @@ export default function User() {
 					} else if (isFriend === false) {
 						return (
 							<div>
-								<button onClick={requestFriend} className="underline">
-									request to add as friend
-								</button>
+								{!requested ? (
+									<button onClick={requestFriend} className="underline">
+										request to add as friend
+									</button>
+								) : null}
 							</div>
 						);
 					} else {

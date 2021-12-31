@@ -61,7 +61,7 @@ let Video = (props: {
 			></video>
 			{
 				<div
-					onClick={(e) => {
+					onClick={() => {
 						if (ContainerRef.current.requestFullscreen) {
 							ContainerRef.current.requestFullscreen().then(() => {
 								setIsFullScreen(true);
@@ -97,7 +97,10 @@ let Video = (props: {
 					{UI && !props.muted ? (
 						<button
 							className="bg-white p-2 text-black rounded"
-							onClick={() => (VideoRef.current.muted = !VideoRef.current.muted)}
+							onClick={(e) => {
+								VideoRef.current.muted = !VideoRef.current.muted;
+								e.stopPropagation();
+							}}
 						>
 							{VideoRef.current.muted ? 'unmute' : 'mute'}
 						</button>
@@ -394,8 +397,12 @@ export default function Room() {
 						let seconds = Math.floor(now / 1000);
 						let minutes = Math.floor(seconds / 60);
 						let hours = Math.floor(minutes / 60);
-						let convert = (val, mod) => (val >= 10 ? val % mod : '0' + String(val));
-						return `${convert(hours, 24)}:${convert(minutes, 60)}:${convert(seconds, 60)}`;
+						let convert = (val, mod) =>
+							val % mod >= 10 ? val % mod : '0' + String(val % mod);
+						return `${convert(hours, 24)}:${convert(minutes, 60)}:${convert(
+							seconds,
+							60
+						)}`;
 					})()}
 				</div>
 			</div>
