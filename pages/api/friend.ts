@@ -14,7 +14,22 @@ export default function addFriend(req: NextApiRequest, res: NextApiResponse) {
 		}
 		if (body.type === 'accept') {
 			pool.query(
-				'INSERT INTO Friends (USERID, FRIENDID) VALUES ((SELECT ID FROM Users WHERE USERNAME = ?), (SELECT ID FROM Users WHERE USERNAME = ?)); INSERT INTO Friends (USERID, FRIENDID) VALUES((SELECT ID FROM Users WHERE USERNAME = ?), (SELECT ID FROM Users WHERE USERNAME = ?)); DELETE FROM FriendRequests WHERE RequesteeID = ? AND RequesterID = ?',
+				`
+				INSERT INTO Friends (USERID, FRIENDID) VALUES (
+					(SELECT ID FROM Users WHERE USERNAME = ?), 
+					(SELECT ID FROM Users WHERE USERNAME = ?)
+				); 
+				INSERT INTO Friends (USERID, FRIENDID) VALUES(
+					(SELECT ID FROM Users WHERE USERNAME = ?), 
+					(SELECT ID FROM Users WHERE USERNAME = ?)
+				); 
+				DELETE FROM FriendRequests WHERE RequesteeID = (
+					SELECT ID FROM Users WHERE USERNAME = ?
+				) 
+				AND RequesterID = (
+					SELECT ID FROM Users WHERE USERNAME = ?
+				)
+				`,
 				[
 					decoded.username,
 					body.username,
@@ -36,7 +51,12 @@ export default function addFriend(req: NextApiRequest, res: NextApiResponse) {
 			);
 		} else if (body.type === 'request') {
 			pool.query(
-				'INSERT INTO FriendRequests (RequesterID, RequesteeID) VALUES ((SELECT ID FROM Users WHERE Username = ?), (SELECT ID From Users WHERE Username = ?))',
+				`
+				INSERT INTO FriendRequests (RequesterID, RequesteeID) VALUES (
+					(SELECT ID FROM Users WHERE Username = ?), 
+					(SELECT ID From Users WHERE Username = ?)
+				)
+				`,
 				[decoded.username, body.username],
 				(err, results, fields) => {
 					if (err) {

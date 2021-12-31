@@ -12,7 +12,13 @@ const inbox = (req: NextApiRequest, res: NextApiResponse) => {
 			return;
 		}
 		pool.query(
-			'SELECT USERNAME from Users WHERE ID IN (SELECT RequesterID FROM FriendRequests WHERE RequesteeID = (SELECT ID FROM Users WHERE USERNAME = ?))',
+			`
+			SELECT USERNAME from Users WHERE ID IN (
+				SELECT RequesterID FROM FriendRequests WHERE RequesteeID = (
+					SELECT ID FROM Users WHERE USERNAME = ?
+				)
+			)
+			`,
 			[decoded.username],
 			(err, results, fields) => {
 				if (err) {

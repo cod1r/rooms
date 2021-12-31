@@ -8,25 +8,27 @@ import {
 } from 'react';
 import router from 'next/router';
 import { GLOBALS } from '../../../contexts/globals';
+import Link from 'next/link';
 
 // the function that gets returned from a useEffect function is that function
 // that cleans up the PREVIOUS effect
 
 interface DataChannelDataType {
 	name: string;
+	peerid: string;
+	peerIds: Array<string>;
 }
 
-// TODO: close all mediaStream connections
 let Video = (props: {
 	peer: string;
 	className?: string;
-	key: number;
 	mediaStream: MediaStream;
 	muted: boolean;
 }) => {
 	let [isFullScreen, setIsFullScreen] = useState(false);
 	let VideoRef = useRef(null);
 	let ContainerRef = useRef(null);
+	let [UI, setUI] = useState(false);
 	useEffect(() => {
 		VideoRef.current.srcObject = props.mediaStream;
 		ContainerRef.current.onfullscreenchange = (e) => {
@@ -36,11 +38,15 @@ let Video = (props: {
 				setIsFullScreen(false);
 			}
 		};
-	}, [props.mediaStream]);
+		return () => {
+			if (VideoRef.current) {
+				VideoRef.current.onprogress = null;
+			}
+		};
+	}, [props.mediaStream, props.peer]);
 	return (
 		<div
 			ref={ContainerRef}
-			key={props.key}
 			className="bg-cyan-500 relative h-80 w-80 rounded grid place-items-center z-50"
 		>
 			<div className="absolute grid place-items-center z-0">
@@ -56,22 +62,44 @@ let Video = (props: {
 			{
 				<div
 					onClick={(e) => {
-						ContainerRef.current.requestFullscreen().then(() => {
+						if (ContainerRef.current.requestFullscreen) {
+							ContainerRef.current.requestFullscreen().then(() => {
+								setIsFullScreen(true);
+							});
+						} else if (ContainerRef.current.webkitRequestFullscreen) {
+							ContainerRef.current.webkitRequestFullscreen();
 							setIsFullScreen(true);
-						});
+						}
 					}}
+					onMouseEnter={() => setUI(true)}
+					onMouseLeave={() => setUI(false)}
 					className="absolute left-0 top-0 z-20 h-full w-full flex flex-col items-center"
 				>
 					{isFullScreen ? (
 						<button
 							className="p-2 bg-white text-black rounded"
 							onClick={() => {
-								document.exitFullscreen().then(() => {
+								if (document.exitFullscreen) {
+									document.exitFullscreen().then(() => {
+										setIsFullScreen(false);
+									});
+									// @ts-ignore
+								} else if (document.webkitExitFullscreen) {
+									// @ts-ignore
+									document.webkitExitFullscreen();
 									setIsFullScreen(false);
-								});
+								}
 							}}
 						>
 							Exit Fullscreen
+						</button>
+					) : null}
+					{UI && !props.muted ? (
+						<button
+							className="bg-white p-2 text-black rounded"
+							onClick={() => (VideoRef.current.muted = !VideoRef.current.muted)}
+						>
+							{VideoRef.current.muted ? 'unmute' : 'mute'}
 						</button>
 					) : null}
 				</div>
@@ -80,34 +108,77 @@ let Video = (props: {
 	);
 };
 
-export default function Room() {
-	let glbl = useContext(GLOBALS);
-	let [Loaded, setLoaded] = useState(false);
-	let [_MEDIA_STREAM_, setMediaStream]: [MediaStream, any] = useState(null);
-	let [screenState, setScreenState] = useState(false);
-	let [micState, setMicState] = useState(true);
-	let [videoState, setVideoState] = useState(false);
-	let [peerStreams, setPeerStreams] = useState([]);
+let useConnect = () => {
 	let [peer, setPeer] = useState(null);
-	let [peerIds, setPeerIds] = useState(null);
-	let [user, setUser] = useState('');
-	let [dataChannelConnections, setDataChannelConnections] = useState(new Map());
-	let [mediaConnections, setMediaConnections] = useState([]);
-	let [videoOrScreen, setVideoOrScreen] = useState('');
-	let [renegotiate, setRenegotiate] = useState(false);
-
-	let [log, setLog] = useState('');
-
+	let [peerIds, setPeerIds] = useState([]);
+	let [username, setUsername] = useState('');
 	useEffect(() => {
 		(async () => {
 			let Peer = (await import('peerjs')).default;
 			setPeer(new Peer());
 		})();
+	}, []);
+	useEffect(() => {
+		let { room, user } = router.query;
+		if (peer !== null) {
+			peer.on('open', (id) => {
+				fetch('/api/joinroom', {
+					method: 'POST',
+					body: JSON.stringify({
+						roomname: room,
+						user: user,
+						id: peer.id,
+					}),
+				}).then(async (res) => {
+					if (res.ok) {
+						let { peerids, username } = await res.json();
+						setPeerIds(peerids.filter((peerid) => peerid !== peer.id));
+						setUsername(username);
+					}
+				});
+			});
+		}
+	}, [peer]);
+	return { peer: peer, peerIds: peerIds, username: username };
+};
 
+export default function Room() {
+	let glbl = useContext(GLOBALS);
+	let [negotiate, setNegotiate] = useState(0);
+	let { peer, peerIds, username } = useConnect();
+	let [_PEERIDS_, setPEERIDS]: [Array<string>, any] = useState([]);
+	let [Loaded, setLoaded] = useState(false);
+	let [_MEDIA_STREAM_, setMediaStream]: [MediaStream, any] = useState(
+		new MediaStream()
+	);
+	let [micState, setMicState] = useState(null);
+	let [peerStreams, setPeerStreams]: [
+		Array<{ call: any; stream: MediaStream; name: string }>,
+		any
+	] = useState([]);
+	let [peerChannels, setPeerChannels] = useState([]);
+	let [peerCalls, setPeerCalls] = useState([]);
+	let [now, setNow] = useState(Date.now());
+	let msRef = useRef(_MEDIA_STREAM_);
+	let peerRef = useRef(peer);
+	let peerChannelsRef = useRef(peerChannels);
+	let timerID = useRef(null);
+
+	useEffect(() => {
+		setMicState(true);
+		let tid = setInterval(() => setNow(Date.now() - now), 1000);
+		timerID.current = tid;
 		// cleans up after the component unmounts
 		return () => {
 			let controller = new AbortController();
 			let timeoutID = setTimeout(() => controller.abort(), 5000);
+			msRef.current
+				.getTracks()
+				.forEach((track: MediaStreamTrack) => track.stop());
+			peerChannelsRef.current.forEach((conn) => conn.close());
+			peerRef.current.destroy();
+			clearTimeout(timerID.current);
+			console.log('destroyed?', peerRef.current);
 			fetch('/api/leaveroom', {
 				method: 'POST',
 				signal: controller.signal,
@@ -123,258 +194,210 @@ export default function Room() {
 	}, []);
 
 	useEffect(() => {
-		console.log('[room] useeffect here; authenticated:', glbl.authenticated);
-		if (glbl.authenticated && peer !== null) {
-			glbl.setInRoom(true);
-
-			peer.on('error', (e) => {
-				console.error('PEER ERROR', e);
-			});
-			peer.on('open', (id) => {
-				setRenegotiate(true);
-			});
+		if (peerIds.length > 0) {
+			setPEERIDS(peerIds);
 		}
-	}, [glbl.authenticated, peer]);
+	}, [peerIds]);
 
 	useEffect(() => {
-		// closes all mediaConnections and dataChannels
-		setMediaConnections((pmc) => {
-			pmc.forEach((mediaConnection) => mediaConnection.close());
-			return pmc;
-		});
-		setMediaConnections([]);
-		setDataChannelConnections((pdc) => {
-			Array.from(pdc.values()).forEach((conn) => conn.close());
-			return pdc;
-		});
-		setDataChannelConnections(new Map());
-		setPeerStreams((ps) => {
-			ps.forEach((s) => s.close());
-			return ps;
-		});
-		setPeerStreams([]);
-
-		if (peer !== null && renegotiate === true) {
-			let { room, user } = router.query;
-			let controller = new AbortController();
-			let timeoutid_2 = setTimeout(() => {
-				router.push('/');
-				controller.abort();
-			}, 5000);
-			fetch('/api/joinroom', {
-				method: 'POST',
-				body: JSON.stringify({
-					roomname: room,
-					id: peer.id,
-					user: user,
-				}),
-				signal: controller.signal,
-			}).then(async (res) => {
-				clearTimeout(timeoutid_2);
-				if (res.status == 200) {
-					console.log('joinroom api status 200');
-					let { peerids, username } = await res.json();
-					setUser(username);
-					setPeerIds(peerids);
-
-					setMicState(true);
-
-					if (_MEDIA_STREAM_ !== null) setLoaded(true);
-				} else {
-					router.push('/');
-				}
-			});
-		}
-	}, [renegotiate, peer]);
-
-	useEffect(() => {
-		if (
-			_MEDIA_STREAM_ !== null &&
-			user.length > 0 &&
-			peer !== null &&
-			peerIds !== null
-		) {
-			// renegotiate with peers
-			peerIds.forEach((peerid) => {
-				if (peerid !== peer.id) {
-					let call = peer.call(peerid, _MEDIA_STREAM_);
-					call.on('error', (e) => {
-						console.error(e);
-					});
-					call.on('stream', (remoteStream: MediaStream) => {
-						setPeerStreams((p) => [...p, remoteStream]);
-						console.log('open?', call.open);
-					});
-					setMediaConnections((m) => [...m, call]);
-
-					let conn = peer.connect(peerid);
-					conn.on('open', () => {
-						conn.on('data', (data: DataChannelDataType) => {
-							// we create a new map in order to trigger a rerender
-							setDataChannelConnections((prevDataChannelConnections) => {
-								prevDataChannelConnections.set(data.name, conn);
-								return new Map(prevDataChannelConnections.entries());
-							});
-						});
-						conn.send({ name: user });
-					});
-					conn.on('error', (e) => {
-						console.log('conn error', e);
-					});
-				}
-			});
-
+		if (peer !== null && _MEDIA_STREAM_.active && username.length > 0) {
+			peerRef.current = peer;
 			peer.on('call', (call) => {
 				call.on('error', (e) => {
 					console.error('ERROR', e);
 				});
 				call.answer(_MEDIA_STREAM_);
-				console.log('somebody called me');
+				console.log('somebody called me', _MEDIA_STREAM_);
 				call.on('stream', (remoteStream: MediaStream) => {
-					setPeerStreams((p) => [...p, remoteStream]);
+					setPeerStreams((prevPeerStreams) => {
+						return [
+							...prevPeerStreams,
+							{ call: call, stream: remoteStream, name: null },
+						];
+					});
 					console.log('open?', call.open);
+				});
+				call.on('close', () => {
+					console.log(call.peer, 'closed');
 				});
 			});
 
 			peer.on('connection', (conn) => {
 				conn.on('open', () => {
 					conn.on('data', (data: DataChannelDataType) => {
-						conn.on('close', () => {
-							setDataChannelConnections(
-								(pdc) =>
-									new Map(
-										Array.from(pdc.entries()).filter(
-											(keyValuePair) => keyValuePair[1].peer !== conn.peer
-										)
-									)
-							);
+						// this is to match the names with the streams
+						setPeerStreams((prevPeerStreams) => {
+							prevPeerStreams.forEach((peerStream) => {
+								if (peerStream.call.peer === data.peerid) {
+									peerStream.name = data.name;
+								}
+							});
+							return [...prevPeerStreams];
 						});
-						// we create a new map in order to trigger a rerender
-						setDataChannelConnections((prevDataChannelConnections) => {
-							prevDataChannelConnections.set(data.name, conn);
-							return new Map(prevDataChannelConnections.entries());
+						setPEERIDS((prevPEERIDS) => {
+							let newPEERIDS = [...prevPEERIDS];
+							data.peerIds.forEach((peerId) => {
+								if (!newPEERIDS.includes(peerId)) {
+									newPEERIDS.push(peerId);
+								}
+							});
+							return newPEERIDS;
 						});
 					});
-					conn.send({ name: user });
+					conn.send({ name: username, peerid: peer.id });
 				});
 				conn.on('error', (e) => {
 					console.log('conn error', e);
 				});
+				conn.on('close', () => {
+					console.log(conn.peer, 'ended0', peerRef.current);
+					setPeerStreams((prevPeerStreams) => {
+						console.log(
+							'find?',
+							prevPeerStreams.find(
+								(peerStream) => peerStream.call.peer === conn.peer
+							)
+						);
+						return prevPeerStreams.filter(
+							(peerStream) => peerStream.call.peer !== conn.peer
+						);
+					});
+				});
+				setPeerChannels((prevPeerChannel) => {
+					let newPeerChannels = [...prevPeerChannel, conn];
+					peerChannelsRef.current = newPeerChannels;
+					return newPeerChannels;
+				});
 			});
 		}
-	}, [peerIds, _MEDIA_STREAM_, user, peer]);
+	}, [peer, _MEDIA_STREAM_, username]);
 
 	useEffect(() => {
-		if (screenState === true && peerIds !== null && peer !== null) {
-			navigator.mediaDevices
-				.getDisplayMedia({ audio: true, video: true })
-				.then(
-					(mediaStream) => {
-						setMediaStream(mediaStream);
-						setRenegotiate(true);
-						setVideoOrScreen('screen');
-					},
-					(rejected) => {
-						console.error('screen rejected');
-					}
-				)
-				.catch((e) => console.error(e));
-		} else {
-			_MEDIA_STREAM_?.getTracks().forEach((track) => track.stop());
-			setVideoOrScreen('');
+		if (_MEDIA_STREAM_.active && username.length > 0 && peer !== null) {
+			msRef.current = _MEDIA_STREAM_;
+			console.log('calling peers');
+			// renegotiate with peers
+			_PEERIDS_.forEach((peerid) => {
+				if (
+					peerid !== peer.id &&
+					!peerChannelsRef.current.find(
+						(peerChannel) => peerChannel.peer === peerid
+					)
+				) {
+					console.log('ms', _MEDIA_STREAM_);
+					let call = peer.call(peerid, _MEDIA_STREAM_);
+					call.on('error', (e) => {
+						console.error(e);
+					});
+					call.on('stream', (remoteStream: MediaStream) => {
+						setPeerStreams((prevPeerStreams) => {
+							return [
+								...prevPeerStreams,
+								{ call: call, stream: remoteStream, name: null },
+							];
+						});
+						console.log('open?', call.open);
+					});
+					call.on('close', () => {
+						console.log(call.peer, 'closed1');
+					});
+
+					let conn = peer.connect(peerid);
+					conn.on('open', () => {
+						conn.on('data', (data: DataChannelDataType) => {
+							// this is to match the names with the streams
+							setPeerStreams((prevPeerStreams) => {
+								prevPeerStreams.forEach((peerStream) => {
+									if (peerStream.call.peer === data.peerid) {
+										peerStream.name = data.name;
+									}
+								});
+								return [...prevPeerStreams];
+							});
+						});
+						conn.send({ name: username, peerid: peer.id, peerIds: _PEERIDS_ });
+					});
+					conn.on('error', (e) => {
+						console.log('conn error', e);
+					});
+					conn.on('close', () => {
+						console.log(conn.peer, 'ended1', peerRef.current);
+						setPeerStreams((prevPeerStreams) => {
+							return prevPeerStreams.filter(
+								(peerStream) => peerStream.call.peer !== conn.peer
+							);
+						});
+					});
+					setPeerChannels((prevPeerChannel) => {
+						let newPeerChannels = [...prevPeerChannel, conn];
+						peerChannelsRef.current = newPeerChannels;
+						return newPeerChannels;
+					});
+				}
+			});
 		}
-	}, [screenState]);
+	}, [_PEERIDS_, _MEDIA_STREAM_, username, peer]);
 
 	useEffect(() => {
-		if (_MEDIA_STREAM_ === null) {
+		if (glbl.authenticated) {
+			glbl.setInRoom(true);
+		}
+	}, [glbl.authenticated]);
+
+	useEffect(() => {
+		if (micState === null) {
 			navigator.mediaDevices
 				.getUserMedia({ audio: true })
-				.then(
-					(mediaStream) => {
-						setMediaStream(mediaStream);
-					},
-					(rejected) => {
-						console.error('rejected');
-						router.push('/home');
-					}
-				)
-				.catch((e) => console.error(e));
+				.then((mediaStream) => {
+					setMediaStream(mediaStream);
+					setNegotiate(Number(!negotiate));
+				})
+				.catch((e) => {
+					console.error('mic rejected');
+					router.push('/');
+				});
 		} else {
-			_MEDIA_STREAM_
-				.getAudioTracks()
-				.forEach((track) => (track.enabled = micState));
+			msRef.current?.getTracks().forEach((track) => (track.enabled = micState));
 		}
-	}, [micState, _MEDIA_STREAM_]);
-
-	useEffect(() => {
-		if (videoState === true && peerIds !== null && peer !== null) {
-			navigator.mediaDevices
-				.getUserMedia({ audio: true, video: true })
-				.then(
-					(mediaStream) => {
-						setMediaStream(mediaStream);
-						setRenegotiate(true);
-						setVideoOrScreen('video');
-					},
-					(rejection) => {
-						console.error('video rejected');
-					}
-				)
-				.catch((e) => console.error(e));
-		} else {
-			_MEDIA_STREAM_
-				?.getVideoTracks()
-				.forEach((track: MediaStreamTrack) => track.stop());
-			setVideoOrScreen('');
-		}
-	}, [videoState]);
-
-	// this is to stop our media stream after unmounting
-	useEffect(() => {
-		return () => {
-			_MEDIA_STREAM_?.getTracks().forEach((track) => track.stop());
-		};
-	}, [_MEDIA_STREAM_]);
+	}, [micState]);
 
 	return Loaded !== null && glbl.authenticated === true ? (
 		<div className="h-full bg-cyan-600 flex flex-col items-center">
-			<div className="text-white">{log}</div>
 			<div className="h-full w-full text-white grid auto-rows-min auto-cols-min grid-flow-row">
-				{Array.from(dataChannelConnections.keys()).map((peer, index) => (
+				{peerStreams.map((peer, index: number) => (
 					<Video
-						peer={peer}
-						muted={false}
 						key={index}
-						mediaStream={peerStreams[index]}
+						peer={peer.name}
+						muted={false}
+						mediaStream={peer.stream}
 					/>
 				))}
 			</div>
-			<Video peer={user} key={-1} mediaStream={_MEDIA_STREAM_} muted={true} />
-			<div className="flex justify-center sticky bottom-0">
-				<button
-					className="p-2 m-2 bg-white rounded shadow-md"
-					onClick={() => router.push('/home')}
-				>
-					Leave
-				</button>
+			<Video
+				key={-1}
+				peer={username}
+				mediaStream={_MEDIA_STREAM_}
+				muted={true}
+			/>
+			<div className="flex justify-center sticky bottom-0 grid grid-cols-3 text-center">
+				<Link href="/home">
+					<a className="p-2 m-2 bg-white rounded shadow-md">Leave</a>
+				</Link>
 				<button
 					className="p-2 m-2 bg-white rounded shadow-md"
 					onClick={() => setMicState((prevMicState) => !prevMicState)}
 				>
 					{micState ? 'Microphone' : <s>Microphone</s>}
 				</button>
-				<button
-					className="p-2 m-2 bg-white rounded shadow-md"
-					onClick={() => setVideoState((prevVideoState) => !prevVideoState)}
-				>
-					{videoOrScreen === 'video' ? 'Video' : <s>Video</s>}
-				</button>
-				<button
-					className="p-2 m-2 bg-white rounded shadow-md"
-					onClick={() => setScreenState((prevScreenState) => !prevScreenState)}
-				>
-					{videoOrScreen === 'screen' ? 'Screen' : <s>Screen</s>}
-				</button>
+				<div className="p-2 m-2 bg-white rounded shadow-md">
+					{(() => {
+						let seconds = Math.floor(now / 1000);
+						let minutes = Math.floor(seconds / 60);
+						let hours = Math.floor(minutes / 60);
+						let convert = (val, mod) => (val >= 10 ? val % mod : '0' + String(val));
+						return `${convert(hours, 24)}:${convert(minutes, 60)}:${convert(seconds, 60)}`;
+					})()}
+				</div>
 			</div>
 		</div>
 	) : (

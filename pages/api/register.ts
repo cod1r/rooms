@@ -42,7 +42,7 @@ export default function register(req: NextApiRequest, res: NextApiResponse) {
 								credentials.username,
 								hash,
 								`${credentials.username}'s room`,
-								'default',
+								0,
 								0,
 							],
 							(err, results, fields) => {

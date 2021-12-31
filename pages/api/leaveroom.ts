@@ -14,6 +14,8 @@ export default function leaveroom(req: NextApiRequest, res: NextApiResponse) {
 			if (err) {
 				connection.release();
 				console.log(err);
+				res.statusCode = 500;
+				res.send({});
 				return;
 			}
 			connection.query(

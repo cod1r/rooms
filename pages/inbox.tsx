@@ -21,7 +21,10 @@ const Inbox = () => {
 			}),
 		}).then(async (res) => {
 			if (res.status === 200) {
-				setRequests(requests.splice(index, 1));
+				setRequests((prevRequests) => {
+					prevRequests.splice(index, 1);
+					return prevRequests;
+				});
 			}
 		});
 	};
@@ -34,7 +37,10 @@ const Inbox = () => {
 			}),
 		}).then((res) => {
 			if (res.status === 200) {
-				setRequests(requests.splice(index, 1));
+				setRequests((prevRequests) => {
+					prevRequests.splice(index, 1);
+					return prevRequests;
+				});
 			}
 		});
 	};
