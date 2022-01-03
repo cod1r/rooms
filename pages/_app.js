@@ -45,7 +45,7 @@ function MyApp({ Component, pageProps }) {
 				setInRoom: (state) => setInRoom(state),
 			}}
 		>
-			<div className="h-screen">
+			<div className="h-screen w-screen">
 				{loaded ? <Component {...pageProps} /> : null}
 			</div>
 		</GLOBALS.Provider>

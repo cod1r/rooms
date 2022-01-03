@@ -16,7 +16,6 @@ import Link from 'next/link';
 interface DataChannelDataType {
 	name: string;
 	peerid: string;
-	peerIds: Array<string>;
 }
 
 let Video = (props: {
@@ -38,19 +37,14 @@ let Video = (props: {
 				setIsFullScreen(false);
 			}
 		};
-		return () => {
-			if (VideoRef.current) {
-				VideoRef.current.onprogress = null;
-			}
-		};
 	}, [props.mediaStream, props.peer]);
 	return (
 		<div
 			ref={ContainerRef}
-			className="bg-cyan-500 relative h-80 w-80 rounded grid place-items-center z-50"
+			className="bg-cyan-500 relative h-full w-full rounded grid place-items-center z-50"
 		>
-			<div className="absolute grid place-items-center z-0">
-				<div className="text-white">{props.peer}</div>
+			<div className="text-white absolute grid place-items-center z-0 overflow-hidden text-ellipsis w-full">
+				{props.peer}
 			</div>
 			<video
 				ref={VideoRef}
@@ -96,7 +90,7 @@ let Video = (props: {
 					) : null}
 					{UI && !props.muted ? (
 						<button
-							className="bg-white p-2 text-black rounded"
+							className="bg-white p-2 text-black rounded absolute right-0 bottom-0"
 							onClick={(e) => {
 								VideoRef.current.muted = !VideoRef.current.muted;
 								e.stopPropagation();
@@ -147,7 +141,6 @@ let useConnect = () => {
 
 export default function Room() {
 	let glbl = useContext(GLOBALS);
-	let [negotiate, setNegotiate] = useState(0);
 	let { peer, peerIds, username } = useConnect();
 	let [_PEERIDS_, setPEERIDS]: [Array<string>, any] = useState([]);
 	let [Loaded, setLoaded] = useState(false);
@@ -161,7 +154,7 @@ export default function Room() {
 	] = useState([]);
 	let [peerChannels, setPeerChannels] = useState([]);
 	let [peerCalls, setPeerCalls] = useState([]);
-	let [now, setNow] = useState(Date.now());
+	let [now, setNow] = useState(0);
 	let msRef = useRef(_MEDIA_STREAM_);
 	let peerRef = useRef(peer);
 	let peerChannelsRef = useRef(peerChannels);
@@ -169,7 +162,7 @@ export default function Room() {
 
 	useEffect(() => {
 		setMicState(true);
-		let tid = setInterval(() => setNow(Date.now() - now), 1000);
+		let tid = setInterval(() => setNow((n) => n + 1), 1000);
 		timerID.current = tid;
 		// cleans up after the component unmounts
 		return () => {
@@ -181,7 +174,7 @@ export default function Room() {
 			peerChannelsRef.current.forEach((conn) => conn.close());
 			peerRef.current.destroy();
 			clearTimeout(timerID.current);
-			console.log('destroyed?', peerRef.current);
+			//console.log('destroyed?', peerRef.current);
 			fetch('/api/leaveroom', {
 				method: 'POST',
 				signal: controller.signal,
@@ -237,15 +230,6 @@ export default function Room() {
 							});
 							return [...prevPeerStreams];
 						});
-						setPEERIDS((prevPEERIDS) => {
-							let newPEERIDS = [...prevPEERIDS];
-							data.peerIds.forEach((peerId) => {
-								if (!newPEERIDS.includes(peerId)) {
-									newPEERIDS.push(peerId);
-								}
-							});
-							return newPEERIDS;
-						});
 					});
 					conn.send({ name: username, peerid: peer.id });
 				});
@@ -279,7 +263,6 @@ export default function Room() {
 		if (_MEDIA_STREAM_.active && username.length > 0 && peer !== null) {
 			msRef.current = _MEDIA_STREAM_;
 			console.log('calling peers');
-			// renegotiate with peers
 			_PEERIDS_.forEach((peerid) => {
 				if (
 					peerid !== peer.id &&
@@ -318,7 +301,7 @@ export default function Room() {
 								return [...prevPeerStreams];
 							});
 						});
-						conn.send({ name: username, peerid: peer.id, peerIds: _PEERIDS_ });
+						conn.send({ name: username, peerid: peer.id });
 					});
 					conn.on('error', (e) => {
 						console.log('conn error', e);
@@ -353,7 +336,6 @@ export default function Room() {
 				.getUserMedia({ audio: true })
 				.then((mediaStream) => {
 					setMediaStream(mediaStream);
-					setNegotiate(Number(!negotiate));
 				})
 				.catch((e) => {
 					console.error('mic rejected');
@@ -365,8 +347,14 @@ export default function Room() {
 	}, [micState]);
 
 	return Loaded !== null && glbl.authenticated === true ? (
-		<div className="h-full bg-cyan-600 flex flex-col items-center">
-			<div className="h-full w-full text-white grid auto-rows-min auto-cols-min grid-flow-row">
+		<div className="h-full w-full bg-cyan-600 flex flex-col items-center">
+			<div className="h-full w-full text-white grid gap-1 grid-cols-4 overflow-x-hidden">
+				<Video
+					key={-1}
+					peer={username}
+					mediaStream={_MEDIA_STREAM_}
+					muted={true}
+				/>
 				{peerStreams.map((peer, index: number) => (
 					<Video
 						key={index}
@@ -376,34 +364,32 @@ export default function Room() {
 					/>
 				))}
 			</div>
-			<Video
-				key={-1}
-				peer={username}
-				mediaStream={_MEDIA_STREAM_}
-				muted={true}
-			/>
-			<div className="flex justify-center sticky bottom-0 grid grid-cols-3 text-center">
-				<Link href="/home">
-					<a className="p-2 m-2 bg-white rounded shadow-md">Leave</a>
-				</Link>
-				<button
-					className="p-2 m-2 bg-white rounded shadow-md"
-					onClick={() => setMicState((prevMicState) => !prevMicState)}
-				>
-					{micState ? 'Microphone' : <s>Microphone</s>}
-				</button>
-				<div className="p-2 m-2 bg-white rounded shadow-md">
-					{(() => {
-						let seconds = Math.floor(now / 1000);
-						let minutes = Math.floor(seconds / 60);
-						let hours = Math.floor(minutes / 60);
-						let convert = (val, mod) =>
-							val % mod >= 10 ? val % mod : '0' + String(val % mod);
-						return `${convert(hours, 24)}:${convert(minutes, 60)}:${convert(
-							seconds,
-							60
-						)}`;
-					})()}
+			<div className="flex justify-center fixed z-50 bottom-0 text-center w-full">
+				<div className="w-1/2 grid grid-cols-3">
+					<Link href="/home">
+						<a className="p-2 m-2 bg-white rounded shadow-md overflow-hidden text-ellipsis">
+							Leave
+						</a>
+					</Link>
+					<button
+						className="p-2 m-2 bg-white rounded shadow-m overflow-hidden text-ellipsis"
+						onClick={() => setMicState((prevMicState) => !prevMicState)}
+					>
+						{micState ? 'Microphone' : <s>Microphone</s>}
+					</button>
+					<div className="p-2 m-2 bg-white rounded shadow-md overflow-hidden text-ellipsis">
+						{(() => {
+							let seconds = now;
+							let minutes = Math.floor(seconds / 60);
+							let hours = Math.floor(minutes / 60);
+							let convert = (val, mod) =>
+								val % mod >= 10 ? val % mod : '0' + String(val % mod);
+							return `${convert(hours, 24)}:${convert(minutes, 60)}:${convert(
+								seconds,
+								60
+							)}`;
+						})()}
+					</div>
 				</div>
 			</div>
 		</div>
