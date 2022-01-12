@@ -1,38 +1,50 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { GetItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
 import jwt from 'jsonwebtoken';
-import { pool } from '../../database/databaseinit';
+import { NextApiRequest, NextApiResponse } from 'next';
+import { client } from '../../database/databaseinit';
 export default function authenticate(
 	req: NextApiRequest,
-	res: NextApiResponse
+	res: NextApiResponse,
 ) {
 	if ('cookie' in req.headers) {
-		console.log('cookie present');
 		let cookies = req.cookies;
 		let token = cookies['rememberme'];
 		jwt.verify(token, process.env.private_key, (err, decoded) => {
 			if (err) {
 				console.log(err);
+				res.status(401).send({});
 				return;
 			}
 			// maybe check if the password and username is in the database but for now we will just send a 200 status code
-			pool.query(
-				'SELECT password FROM Users WHERE password = ?',
-				[decoded.password],
-				(err, results, fields) => {
-					if (err) {
-						console.log(err);
-						return;
-					}
-					if (results.length > 0) {
-						res.status(200).json({ authenticated: true });
+			client
+				.send(
+					new QueryCommand({
+						KeyConditionExpression: 'Username = :val',
+						ExpressionAttributeValues: {
+							':val': {
+								S: decoded.username,
+							},
+						},
+						IndexName: 'Username-index',
+						TableName: 'Users',
+					}),
+				)
+				.then((dbRes) => {
+					if (
+						dbRes['$metadata'].httpStatusCode === 200
+						&& dbRes.Items.length > 0
+					) {
+						res.status(200).send({});
 					} else {
-						console.log('results', results);
+						res.status(401).send({});
 					}
-				}
-			);
+				})
+				.catch((e) => {
+					console.error(e);
+					res.status(500).send({});
+				});
 		});
 	} else {
-		console.log('no cookie in headers, req headers:', req.headers);
 		res.status(401).json({ authenticated: false });
 	}
 }

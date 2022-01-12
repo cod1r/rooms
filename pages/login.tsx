@@ -1,6 +1,6 @@
-import { useState, useContext } from 'react';
-import { GLOBALS } from '../contexts/globals';
 import router from 'next/router';
+import { useContext, useState } from 'react';
+import { GLOBALS } from '../contexts/globals';
 export default function Login() {
 	let [username, setUsername] = useState('');
 	let [password, setPassword] = useState('');
@@ -21,35 +21,33 @@ export default function Login() {
 		});
 	};
 	return (
-		<div className="bg-cyan-600 h-full w-full grid place-items-center">
-			<form className="w-full grid place-items-center">
-				<label className="w-full md:w-1/2 flex flex-col items-center">
-					<div className="text-white md:text-2xl">Username</div>
+		<div className='h-full w-full grid place-items-center'>
+			<form className='md:w-1/2 md:h-1/2 flex flex-col justify-center items-center md:shadow md:shadow-black rounded'>
+				<label className='w-full md:w-1/2 flex flex-col items-center'>
+					<div className='text-2xl'>Username</div>
 					<input
-						className="outline-none w-1/2 rounded-sm p-3 m-2"
-						type="text"
-						placeholder="Username"
-						name="username"
+						className='outline-none rounded-sm p-3 m-2 border border-black'
+						type='text'
+						placeholder='Username'
+						name='username'
 						value={username}
 						onChange={(e) => setUsername(e.target.value)}
 					/>
 				</label>
-				<label className="w-full md:w-1/2 flex flex-col items-center">
-					<div className="md:text-2xl text-white">Password</div>
+				<label className='w-full md:w-1/2 flex flex-col items-center'>
+					<div className='text-2xl'>Password</div>
 					<input
-						className="outline-none w-1/2 rounded-sm p-3 m-2"
-						type="password"
-						placeholder="Password"
-						name="password"
+						className='outline-none rounded-sm p-3 m-2 border border-black'
+						type='password'
+						placeholder='Password'
+						name='password'
 						value={password}
 						onChange={(e) => setPassword(e.target.value)}
 					/>
 				</label>
 				<div>
-					<button className="-4 p-1 rounded-sm" onClick={submitHandler}>
-						<div className=" text-white hover:underline md:text-2xl">
-							Submit
-						</div>
+					<button className='-4 p-1 rounded-sm' onClick={submitHandler}>
+						<div className='hover:underline text-2xl'>Submit</div>
 					</button>
 				</div>
 			</form>

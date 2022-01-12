@@ -41,12 +41,12 @@ export default function User() {
 	};
 
 	return (
-		<div className="text-white bg-cyan-600 h-full flex flex-col items-center justify-center">
-			<div className="h-5/6 w-1/2 rounded flex flex-col items-center">
-				<div className="text-center flex justify-center m-1 text-2xl">
+		<div className='text-white bg-cyan-600 h-full flex flex-col items-center justify-center'>
+			<div className='h-5/6 w-1/2 rounded flex flex-col items-center'>
+				<div className='text-center flex justify-center m-1 text-2xl'>
 					{username}
 				</div>
-				<div className="border-2 border-cyan-800 text-center break-words w-full md:w-1/4 rounded">
+				<div className='border-2 border-cyan-800 text-center break-words w-full md:w-1/4 rounded'>
 					{bio}
 				</div>
 				{(() => {
@@ -54,18 +54,20 @@ export default function User() {
 						return (
 							<div>
 								<Link href={`/${username}/room/${username}'s room`}>
-									<a className="underline">{`join ${username}'s room`}</a>
+									<a className='underline'>{`join ${username}'s room`}</a>
 								</Link>
 							</div>
 						);
 					} else if (isFriend === false) {
 						return (
 							<div>
-								{!requested ? (
-									<button onClick={requestFriend} className="underline">
-										request to add as friend
-									</button>
-								) : null}
+								{!requested
+									? (
+										<button onClick={requestFriend} className='underline'>
+											request to add as friend
+										</button>
+									)
+									: null}
 							</div>
 						);
 					} else {

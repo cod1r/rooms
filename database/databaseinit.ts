@@ -1,16 +1,11 @@
-import * as mysql from 'mysql';
-var pool = mysql.createPool({
-	host     : process.env.DB_HOST,
-	user     : process.env.DB_USER,
-	password : process.env.DB_PASS,
-	database : process.env.DB_DATABASE,
-	multipleStatements: true
-});
-pool.on('acquire', (connection) => {
-	console.log('connection %d acquired', connection.threadId);
-});
-pool.on('release', (connection) => {
-	console.log('connection %d released', connection.threadId);
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+
+let client = new DynamoDBClient({
+	credentials: {
+		accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+		secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+	},
+	region: 'us-east-1',
 });
 
-export { pool };
+export { client };

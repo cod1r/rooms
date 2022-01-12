@@ -17,7 +17,7 @@ let search = (req: NextApiRequest, res: NextApiResponse) => {
 			res.send({
 				queryResults: results.map((result) => result['USERNAME']),
 			});
-		}
+		},
 	);
 };
 export default search;

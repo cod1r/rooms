@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useContext } from 'react';
-import { GLOBALS } from '../contexts/globals';
-import router from 'next/router';
 import Link from 'next/link';
+import router from 'next/router';
+import React, { useContext, useEffect, useState } from 'react';
+import { GLOBALS } from '../contexts/globals';
 
 export default function Index() {
 	let glbl = useContext(GLOBALS);
@@ -35,32 +35,32 @@ export default function Index() {
 		}
 	}, [glbl.authenticated, glbl.in_room]);
 	return (
-		<div className="grid place-items-center h-full bg-cyan-600">
-			<div className="grid grid-cols-4 grid-rows-3 text-white p-5 rounded-md">
-				<div className="row-start-1 col-span-4 grid place-items-center text-center">
+		<div className='grid place-items-center h-full'>
+			<div className='grid grid-cols-4 grid-rows-3 p-5 rounded md:shadow md:shadow-black'>
+				<div className='row-start-1 col-span-4 grid place-items-center text-center'>
 					<div>
-						<div className="text-5xl text-center font-bold">rooms</div>
-						<div className="text-xl">where you can</div>
+						<div className='text-5xl text-center font-bold'>rooms</div>
+						<div className='text-xl'>where you can</div>
 					</div>
 				</div>
 				{giflist.map((gif, index) => (
 					<div
 						key={index}
-						className="grid place-items-center m-1 rounded-sm p-2"
+						className='grid place-items-center m-1 rounded-sm p-2'
 					>
-						<img src={gif.src} alt={gif.alt} width="100px" />
-						<div className="text-xl font-bold">{gif.caption}</div>
+						<img src={gif.src} alt={gif.alt} width='100px' />
+						<div className='text-xl font-bold'>{gif.caption}</div>
 					</div>
 				))}
-				<div className="text-center row-start-3 col-span-4 grid grid-cols-2">
-					<div className="grid place-items-center">
-						<Link href="/register">
-							<a className="text-2xl hover:underline">register</a>
+				<div className='text-center row-start-3 col-span-4 grid grid-cols-2'>
+					<div className='grid place-items-center'>
+						<Link href='/register'>
+							<a className='text-3xl underline p-2 md:w-48 rounded bg-black text-white'>register</a>
 						</Link>
 					</div>
-					<div className="grid place-items-center">
-						<Link href="/login">
-							<a className="text-2xl hover:underline">login</a>
+					<div className='grid place-items-center'>
+						<Link href='/login'>
+							<a className='text-3xl underline p-2 md:w-48 rounded bg-black text-white'>login</a>
 						</Link>
 					</div>
 				</div>

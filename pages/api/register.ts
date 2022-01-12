@@ -1,7 +1,9 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { pool } from '../../database/databaseinit';
+import { PutItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { NextApiRequest, NextApiResponse } from 'next';
+import { v1 } from 'uuid';
+import { client } from '../../database/databaseinit';
 export default function register(req: NextApiRequest, res: NextApiResponse) {
 	let credentials = JSON.parse(req.body);
 	bcrypt.hash(credentials.password, 10, (err, hash) => {
@@ -11,73 +13,86 @@ export default function register(req: NextApiRequest, res: NextApiResponse) {
 			res.send({});
 			return;
 		}
-		pool.getConnection((err, connection) => {
-			if (err) {
-				connection.release();
-				console.error(err);
-				res.statusCode = 500;
-				res.send({});
-				return;
-			}
-			connection.query(
-				'SELECT COUNT(USERNAME) FROM Users WHERE USERNAME = ?',
-				[credentials.username],
-				(err, results, fields) => {
-					if (err) {
-						connection.release();
-						console.error(err);
-						res.statusCode = 500;
-						res.send({});
-						return;
-					}
-					// we check if username already exists
-					if (results[0]['COUNT(USERNAME)'] === 0) {
-						connection.query(
-							`
-							INSERT INTO Users (email, username, password) VALUES (?, ?, ?); 
-							INSERT INTO Rooms (RoomName, RoomType, PersonCount) VALUES(?, ?, ?)
-							`,
-							[
-								credentials.email,
-								credentials.username,
-								hash,
-								`${credentials.username}'s room`,
-								0,
-								0,
-							],
-							(err, results, fields) => {
+		(async () => {
+			try {
+				let QueryCommandResponse = await client.send(
+					new QueryCommand({
+						IndexName: 'Username-index',
+						KeyConditionExpression: 'Username = :val',
+						ExpressionAttributeValues: {
+							':val': {
+								S: credentials.username,
+							},
+						},
+						TableName: 'Users',
+					}),
+				);
+				let uid = v1();
+				if (
+					QueryCommandResponse.$metadata.httpStatusCode === 200
+					&& QueryCommandResponse.Items.length === 0
+				) {
+					let PutItemResponse = await client.send(
+						new PutItemCommand({
+							Item: {
+								UserID: {
+									S: uid,
+								},
+								Email: {
+									S: credentials.email,
+								},
+								Username: {
+									S: credentials.username,
+								},
+								Password: {
+									S: hash,
+								},
+								Friends: {
+									L: [],
+								},
+								Bio: {
+									S: '',
+								},
+								Followers: {
+									L: [],
+								},
+							},
+							TableName: 'Users',
+						}),
+					);
+					if (
+						PutItemResponse['$metadata'].httpStatusCode === 200
+					) {
+						jwt.sign(
+							{
+								uid: uid,
+								username: credentials.username,
+								password: hash,
+							},
+							process.env.private_key,
+							(err, token) => {
 								if (err) {
 									console.error(err);
-									res.statusCode = 500;
-									res.send({});
+									res.status(500).send({});
 									return;
 								}
-								res.statusCode = 200;
-								jwt.sign(
-									{ username: credentials.username, password: hash },
-									process.env.private_key,
-									(err, token) => {
-										if (err) {
-											console.log(err);
-											return;
-										}
-										res.statusCode = 200;
-										res.setHeader(
-											'Set-Cookie',
-											`rememberme=${token}; Max-Age=${60 * 60 * 24 * 365}`
-										);
-										res.send({});
-									}
+								res.setHeader(
+									'Set-Cookie',
+									`rememberme=${token}; Max-Age=${60 * 60 * 24 * 365}; HttpOnly`,
 								);
-							}
+								res.status(200).send({});
+							},
 						);
 					} else {
-						res.statusCode = 401;
-						res.send({});
+						res.status(401).send({});
 					}
+				} else {
+					res.status(401).send({});
 				}
-			);
-			connection.release();
-		});
+			} catch (err) {
+				console.error(err);
+				res.status(500).send({});
+			}
+		})();
 	});
 }

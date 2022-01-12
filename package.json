@@ -1,33 +1,35 @@
 {
-  "name": "rooms",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "test_secure": "node server.js",
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-		"format": "npx prettier --use-tabs --single-quote --write --ignore-path .gitignore ./pages/"
-  },
-  "dependencies": {
-    "@types/node": "^16.9.1",
-    "@types/react": "^17.0.33",
-    "autoprefixer": "^10.3.4",
-    "bcrypt": "^5.0.1",
-    "jsonwebtoken": "^8.5.1",
-    "mysql": "^2.18.1",
-    "next": "^12.0.3",
-    "peerjs": "^1.3.2",
-    "postcss": "^8.3.6",
-    "prettier": "^2.5.1",
-    "react": "^17.0.2",
-    "react-dom": "17.0.2",
-    "tailwindcss": "^3.0.7",
-    "typescript": "^4.4.3"
-  },
-  "devDependencies": {
-    "eslint": "7.32.0",
-    "eslint-config-next": "11.1.2"
-  }
+	"name": "rooms",
+	"version": "0.1.0",
+	"private": true,
+	"scripts": {
+		"test_secure": "node server.js",
+		"dev": "next dev",
+		"build": "next build",
+		"start": "next start",
+		"lint": "next lint",
+		"format": "npx dprint fmt"
+	},
+	"dependencies": {
+		"@aws-sdk/client-dynamodb": "^3.45.0",
+		"@types/node": "^16.9.1",
+		"@types/react": "^17.0.33",
+		"autoprefixer": "^10.3.4",
+		"bcrypt": "^5.0.1",
+		"dprint": "^0.19.2",
+		"iconoir-react": "^2.1.0",
+		"jsonwebtoken": "^8.5.1",
+		"next": "^12.0.3",
+		"peerjs": "^1.3.2",
+		"postcss": "^8.3.6",
+		"react": "^17.0.2",
+		"react-dom": "17.0.2",
+		"tailwindcss": "^3.0.7",
+		"typescript": "^4.4.3",
+		"uuid": "^8.3.2"
+	},
+	"devDependencies": {
+		"eslint": "7.32.0",
+		"eslint-config-next": "11.1.2"
+	}
 }

@@ -4,10 +4,8 @@ let globals = {
 	in_room: false,
 	setAuthenticated: (state) => {},
 	setInRoom: (state) => {},
-	theme: {
-		light: '',
-		dark: ''
-	}
-}
+	Peer: null,
+	setPeer: (state) => {}
+};
 let GLOBALS = createContext(globals);
-export { GLOBALS }
+export { GLOBALS };
