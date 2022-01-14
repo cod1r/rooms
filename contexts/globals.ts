@@ -5,7 +5,7 @@ let globals = {
 	setAuthenticated: (state) => {},
 	setInRoom: (state) => {},
 	Peer: null,
-	setPeer: (state) => {}
+	setPeer: (state) => {},
 };
 let GLOBALS = createContext(globals);
 export { GLOBALS };

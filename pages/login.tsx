@@ -22,11 +22,11 @@ export default function Login() {
 	};
 	return (
 		<div className='h-full w-full grid place-items-center'>
-			<form className='md:w-1/2 md:h-1/2 flex flex-col justify-center items-center md:shadow md:shadow-black rounded'>
+			<form className='md:w-1/3 md:h-1/2 flex flex-col justify-center items-center md:shadow md:shadow-black rounded'>
 				<label className='w-full md:w-1/2 flex flex-col items-center'>
 					<div className='text-2xl'>Username</div>
 					<input
-						className='outline-none rounded-sm p-3 m-2 border border-black'
+						className='outline-none rounded p-3 m-2 border border-black'
 						type='text'
 						placeholder='Username'
 						name='username'
@@ -37,7 +37,7 @@ export default function Login() {
 				<label className='w-full md:w-1/2 flex flex-col items-center'>
 					<div className='text-2xl'>Password</div>
 					<input
-						className='outline-none rounded-sm p-3 m-2 border border-black'
+						className='outline-none rounded p-3 m-2 border border-black'
 						type='password'
 						placeholder='Password'
 						name='password'
@@ -47,7 +47,7 @@ export default function Login() {
 				</label>
 				<div>
 					<button className='-4 p-1 rounded-sm' onClick={submitHandler}>
-						<div className='hover:underline text-2xl'>Submit</div>
+						<div className='hover:underline text-2xl bg-black text-white p-2 rounded shadow shadow-black'>Submit</div>
 					</button>
 				</div>
 			</form>

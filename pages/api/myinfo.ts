@@ -1,4 +1,10 @@
-import { AttributeValue, BatchGetItemCommand, GetItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
+import {
+	AttributeValue,
+	BatchGetItemCommand,
+	GetItemCommand,
+	QueryCommand,
+	UpdateItemCommand,
+} from '@aws-sdk/client-dynamodb';
 import jwt from 'jsonwebtoken';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { client } from '../../database/databaseinit';
@@ -15,9 +21,8 @@ export default function myinfo(req: NextApiRequest, res: NextApiResponse) {
 		switch (body.type) {
 			case 'get':
 				{
-					// can we combine some of these db requests
-					client
-						.send(
+					(async () => {
+						let GetItemResponse = await client.send(
 							new GetItemCommand({
 								Key: {
 									UserID: {
@@ -26,54 +31,36 @@ export default function myinfo(req: NextApiRequest, res: NextApiResponse) {
 								},
 								TableName: 'Users',
 							}),
-						)
-						.then((dbResponse) => {
-							if (
-								dbResponse.$metadata.httpStatusCode === 200
-								&& dbResponse.Item !== undefined
-								&& dbResponse.Item.Friends.L.length > 0
-							) {
-								client
-									.send(
-										new BatchGetItemCommand({
-											RequestItems: {
-												Users: {
-													Keys: dbResponse.Item.Friends.L.map((AttributeVal) => Object.fromEntries([['UserID', AttributeVal.S]])),
-												},
-											},
-										}),
-									)
-									.then((dbResponseIDToUsername) => {
-										if (
-											dbResponseIDToUsername.$metadata.httpStatusCode === 200
-										) {
-											res.status(200).send({
-												username: decoded.username,
-												bio: dbResponse.Item.Bio.S,
-												friends: dbResponseIDToUsername.Responses.Users.map(
-													(User) => User.Username.S,
-												),
-											});
-										}
-									})
-									.catch((e) => {
-										console.error(e);
-										res.status(500).send({});
-									});
-							} else if (dbResponse.Item.Friends.L.length === 0) {
+						);
+						if (GetItemResponse.$metadata.httpStatusCode === 200 && GetItemResponse.Item !== undefined) {
+							let QueryResponse = await client.send(
+								new QueryCommand({
+									IndexName: 'HostID-index',
+									KeyConditionExpression: 'HostID = :val',
+									ExpressionAttributeValues: {
+										':val': {
+											S: GetItemResponse.Item.UserID.S,
+										},
+									},
+									TableName: 'Rooms',
+								}),
+							);
+							if (QueryResponse.$metadata.httpStatusCode === 200) {
 								res.status(200).send({
-									username: decoded.username,
-									bio: dbResponse.Item.Bio.S,
-									friends: [],
+									roomsDB: QueryResponse.Items.map(room =>
+										Object.fromEntries([['name', room.Roomname.S], ['id', room.RoomID.S], [
+											'roomDescription',
+											room.RoomDescription.S,
+										]])
+									),
+									usernameDB: decoded.username,
+									bioDB: GetItemResponse.Item.Bio.S,
 								});
 							} else {
-								res.status(401).send({});
 							}
-						})
-						.catch((e) => {
-							console.error(e);
-							res.status(500).send({});
-						});
+						} else {
+						}
+					})();
 				}
 				break;
 			case 'edit':
@@ -82,12 +69,12 @@ export default function myinfo(req: NextApiRequest, res: NextApiResponse) {
 						.send(
 							new UpdateItemCommand({
 								Key: {
-									Username: {
-										S: decoded.username,
+									UserID: {
+										S: decoded.uid,
 									},
 								},
 								TableName: 'Users',
-								UpdateExpression: 'SET Bio = if_not_exists(Bio, :B)',
+								UpdateExpression: 'SET Bio = :B',
 								ExpressionAttributeValues: {
 									':B': {
 										S: body.bio,

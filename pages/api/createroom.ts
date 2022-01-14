@@ -45,9 +45,6 @@ export default function createroom(req: NextApiRequest, res: NextApiResponse) {
 								HostID: {
 									S: QueryCommandResponse.Items[0].UserID.S,
 								},
-								HostPeerID: {
-									S: body.peerid,
-								},
 								NumberOfPeople: {
 									N: '0',
 								},

@@ -1,10 +1,17 @@
-import { BatchGetItemCommand, GetItemCommand, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
+import {
+	BatchGetItemCommand,
+	GetItemCommand,
+	PutItemCommand,
+	QueryCommand,
+	UpdateItemCommand,
+} from '@aws-sdk/client-dynamodb';
 import jwt from 'jsonwebtoken';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { client } from '../../database/databaseinit';
 
 interface Body {
 	roomid: string;
+	peerid: string;
 }
 
 export default function joinroom(req: NextApiRequest, res: NextApiResponse) {
@@ -34,10 +41,60 @@ export default function joinroom(req: NextApiRequest, res: NextApiResponse) {
 						GetItemResponse.$metadata.httpStatusCode === 200
 						&& GetItemResponse.Item !== undefined
 					) {
-						res.status(200).send({
-							HostPeerID: GetItemResponse.Item.HostPeerID.S,
-							username: decoded.username,
-						});
+						let QueryResponse = await client.send(
+							new QueryCommand({
+								KeyConditionExpression: 'RoomID = :val',
+								ExpressionAttributeValues: {
+									':val': {
+										S: body.roomid,
+									},
+								},
+								TableName: 'UsersInRooms',
+							}),
+						);
+						if (QueryResponse.$metadata.httpStatusCode === 200) {
+							let PutItemResponse = await client.send(
+								new PutItemCommand({
+									Item: {
+										RoomID: {
+											S: body.roomid,
+										},
+										UserID: {
+											S: decoded.uid,
+										},
+										PeerID: {
+											S: body.peerid,
+										},
+									},
+									TableName: 'UsersInRooms',
+								}),
+							);
+							if (PutItemResponse.$metadata.httpStatusCode === 200) {
+								let GetUserResponse = await client.send(
+									new GetItemCommand({
+										Key: {
+											UserID: {
+												S: GetItemResponse.Item.HostID.S,
+											},
+										},
+										TableName: 'Users',
+									}),
+								);
+								if (GetUserResponse.$metadata.httpStatusCode === 200 && GetUserResponse.Item !== undefined) {
+									res.status(200).send({
+										peerIDsDB: QueryResponse.Items.map((item) => item.PeerID.S),
+										usernameDB: decoded.username,
+										HostUsernameDB: GetUserResponse.Item.Username.S,
+									});
+								} else {
+									res.status(500).send({});
+								}
+							} else {
+								res.status(500).send({});
+							}
+						} else {
+							res.status(401).send({});
+						}
 					} else {
 						res.status(401).send({});
 					}

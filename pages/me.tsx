@@ -1,10 +1,20 @@
-import { useEffect, useRef, useState } from 'react';
-
+import { useRouter } from 'next/router';
+import { useContext, useEffect, useRef, useState } from 'react';
+import { GLOBALS } from '../contexts/globals';
+interface RoomType {
+	name: string;
+	id: string;
+	numPeople?: number;
+	roomDescription: string;
+}
 export default function Profile() {
+	let router = useRouter();
+	let glbl = useContext(GLOBALS);
 	let [username, setUsername]: [string, any] = useState('');
 	let [bio, setBio]: [string, any] = useState('');
 	let [textAreaValue, setTextArea]: [string, any] = useState('');
 	let [editMode, setEditMode]: [boolean, any] = useState(Boolean(false));
+	let [rooms, setRooms]: [Array<RoomType>, any] = useState([]);
 	let textAreaRef = useRef(null);
 
 	useEffect(() => {
@@ -19,18 +29,23 @@ export default function Profile() {
 			signal: controller.signal,
 		}).then(async (res) => {
 			clearTimeout(timeoutid);
-			let { username, bio } = await res.json();
-			setUsername(username);
-			setBio(bio);
+			let { usernameDB, bioDB, roomsDB } = await res.json();
+			setUsername(usernameDB);
+			setBio(bioDB);
+			setTextArea(bioDB);
+			setRooms(roomsDB);
 		});
 	}, []);
 
-	let editprofile = () => {
-		if (editMode === false) {
+	useEffect(() => {
+		if (editMode) {
 			textAreaRef.current.focus();
-			console.log(document.activeElement);
+		}
+	}, [editMode]);
+
+	let editprofile = (e) => {
+		if (editMode === false) {
 			setEditMode(true);
-			setTextArea(bio);
 		} else {
 			let controller = new AbortController();
 			let timeoutid = setTimeout(() => controller.abort(), 5000);
@@ -42,9 +57,13 @@ export default function Profile() {
 				}),
 				signal: controller.signal,
 			}).then((res) => {
-				clearTimeout(timeoutid);
-				setBio(textAreaValue);
-				setEditMode(false);
+				if (res.ok) {
+					clearTimeout(timeoutid);
+					setBio(textAreaValue);
+					setEditMode(false);
+				} else {
+					console.error('no 200');
+				}
 			});
 		}
 	};
@@ -63,7 +82,10 @@ export default function Profile() {
 						? (
 							<button
 								className='bg-black p-2 m-1 text-white rounded shadow shadow-black'
-								onClick={() => setEditMode(false)}
+								onClick={() => {
+									setEditMode(false);
+									setTextArea(bio);
+								}}
 							>
 								cancel
 							</button>
@@ -79,13 +101,31 @@ export default function Profile() {
 						disabled={!editMode}
 						value={textAreaValue}
 					>
-						{textAreaValue}
 					</textarea>
 					{editMode ? <div>characters left: {200 - textAreaValue.length}</div> : null}
 				</div>
 			</div>
-			<div className='text-xl font-bold'>Rooms</div>
-			<ul></ul>
+			<div className='text-xl font-bold border-b border-black w-5/6 text-center pb-2'>My Rooms</div>
+			<ul className='overflow-y-auto md:w-1/3 w-full h-full rounded'>
+				{rooms.map((room: RoomType) => (
+					<li key={room.id} className='text-center'>
+						<h1 className='text-lg font-bold'>{room.name}</h1>
+						<p className=''>{room.roomDescription}</p>
+						<button
+							className='bg-black p-2 m-1 text-white rounded shadow shadow-black'
+							onClick={async () => {
+								let P = new (await import('peerjs')).default();
+								glbl.setPeer(P);
+								P.on('open', (id) => {
+									router.push('/' + room.id);
+								});
+							}}
+						>
+							join
+						</button>
+					</li>
+				))}
+			</ul>
 		</div>
 	);
 }

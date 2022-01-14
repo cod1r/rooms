@@ -17,10 +17,10 @@ let CreateRoom = () => {
 					onChange={(e) => setRoomName(e.target.value)}
 					value={roomname}
 					minLength={10}
-					maxLength={50}
+					maxLength={30}
 					required
 				/>
-				<div>characters left: {50 - roomname.length}</div>
+				<div>characters left: {30 - roomname.length}</div>
 				<label className='block font-bold' htmlFor='roomdesc'>The Room Description</label>
 				<textarea
 					className='border border-black rounded p-1 resize-none w-full h-1/4 md:w-1/2 md:h-1/3 outline-none'
@@ -40,27 +40,20 @@ let CreateRoom = () => {
 							// TODO: tell user that they must make those lengths longer
 							return;
 						}
-						(async () => {
-							let P = new (await import('peerjs')).default();
-							glbl.setPeer(P);
-							P.on('open', (id) => {
-								fetch('/api/createroom', {
-									method: 'POST',
-									body: JSON.stringify({
-										roomname: roomname,
-										roomdescription: roomDesc,
-										peerid: id,
-									}),
-								}).then(async (res) => {
-									if (res.ok) {
-										let { roomid } = await res.json();
-										router.push('/' + roomid);
-									} else {
-										// TODO: handle rejection
-									}
-								});
-							});
-						})();
+						fetch('/api/createroom', {
+							method: 'POST',
+							body: JSON.stringify({
+								roomname: roomname,
+								roomdescription: roomDesc,
+							}),
+						}).then(async (res) => {
+							if (res.ok) {
+								let { roomid } = await res.json();
+								router.push('/' + roomid);
+							} else {
+								// TODO: handle rejection
+							}
+						});
 					}}
 				>
 					create room

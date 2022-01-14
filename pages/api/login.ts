@@ -1,4 +1,4 @@
-import { GetItemCommand } from '@aws-sdk/client-dynamodb';
+import { GetItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { NextApiRequest, NextApiResponse } from 'next';
@@ -7,9 +7,11 @@ export default function login(req: NextApiRequest, res: NextApiResponse) {
 	let credentials = JSON.parse(req.body);
 	client
 		.send(
-			new GetItemCommand({
-				Key: {
-					Username: {
+			new QueryCommand({
+				IndexName: 'Username-index',
+				KeyConditionExpression: 'Username = :val',
+				ExpressionAttributeValues: {
+					':val': {
 						S: credentials.username,
 					},
 				},
@@ -19,11 +21,11 @@ export default function login(req: NextApiRequest, res: NextApiResponse) {
 		.then((dbResponse) => {
 			if (
 				dbResponse['$metadata'].httpStatusCode === 200
-				&& dbResponse.Item !== undefined
+				&& dbResponse.Count > 0
 			) {
 				bcrypt.compare(
 					credentials.password,
-					dbResponse.Item.Password.S,
+					dbResponse.Items[0].Password.S,
 					(err, result) => {
 						if (err) {
 							console.error(err);
@@ -33,10 +35,11 @@ export default function login(req: NextApiRequest, res: NextApiResponse) {
 						if (result) {
 							jwt.sign(
 								{
-									uid: dbResponse.Item.UserID.S,
+									uid: dbResponse.Items[0].UserID.S,
 									username: credentials.username,
-									password: dbResponse.Item.Password.S,
+									password: dbResponse.Items[0].Password.S,
 								},
+								process.env.private_key,
 								(err, token) => {
 									if (err) {
 										console.error(err);

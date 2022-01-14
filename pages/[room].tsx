@@ -1,5 +1,6 @@
+import { EmojiLookBottom, EmojiLookTop } from 'iconoir-react';
 import Link from 'next/link';
-import router from 'next/router';
+import { useRouter } from 'next/router';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { GLOBALS } from '../contexts/globals';
 
@@ -9,9 +10,6 @@ import { GLOBALS } from '../contexts/globals';
 interface DataChannelDataType {
 	type: string;
 	name?: string;
-	peerid?: string;
-	PeerIDs?: Array<string>;
-	Talking?: Array<string>;
 }
 
 interface PeerDataConnection {
@@ -25,52 +23,58 @@ interface PeerMediaConnection {
 	mediaConnection: any;
 }
 
-let Audio = (props: {
-	peer: string;
-	className?: string;
-	mediaStream: MediaStream;
-	muted: boolean;
-	isHost: boolean;
-}) => {
+let Roomer = ({ name, RoomTalker, mediaStream = null }) => {
 	let AudioRef = useRef(null);
-	let ContainerRef = useRef(null);
 	useEffect(() => {
-		AudioRef.current.srcObject = props.mediaStream;
-	}, [props.mediaStream, props.peer]);
-	return <div></div>;
+		AudioRef.current.srcObject = mediaStream;
+	}, [mediaStream]);
+	return (
+		<div className='flex flex-col items-center w-48'>
+			{RoomTalker ? <EmojiLookBottom width={25} height={25} /> : <EmojiLookTop width={25} height={25} />}
+			<h3>{name}</h3>
+			<div className='w-full'>
+				<audio ref={AudioRef} autoPlay={true} />
+			</div>
+		</div>
+	);
 };
 
-let useConnect = () => {
-	let [HostPeerID, setHostPeerID] = useState('');
+let useConnect = (myPeerID: string) => {
+	let router = useRouter();
+	let [peerIDs, setPeerIDs] = useState([]);
 	let [username, setUsername] = useState('');
+	let [HostUsername, setHostUsername] = useState('');
 	useEffect(() => {
-		let { room } = router.query;
-		fetch('/api/joinroom', {
-			method: 'POST',
-			body: JSON.stringify({
-				roomid: room,
-			}),
-		}).then(async (res) => {
-			if (res.ok) {
-				let { HostPeerID, username } = await res.json();
-				setHostPeerID(HostPeerID);
-				setUsername(username);
-			} else {
-				router.push('/');
-			}
-		});
-	}, []);
-	return { HostPeerID: HostPeerID, username: username };
+		if (myPeerID.length > 0) {
+			let { room } = router.query;
+			fetch('/api/joinroom', {
+				method: 'POST',
+				body: JSON.stringify({
+					roomid: room,
+					peerid: myPeerID,
+				}),
+			}).then(async (res) => {
+				if (res.ok) {
+					let { peerIDsDB, usernameDB, HostUsernameDB } = await res.json();
+					setPeerIDs(peerIDsDB);
+					setUsername(usernameDB);
+					setHostUsername(HostUsernameDB);
+				} else {
+					router.push('/home');
+				}
+			});
+		}
+	}, [myPeerID]);
+	return { peerIDs: peerIDs, username: username, HostUsername: HostUsername };
 };
 
 export default function Room() {
 	let glbl = useContext(GLOBALS);
-	let { HostPeerID, username } = useConnect();
-	let [_HostPeerID_, setHostPeerID]: [string, any] = useState(HostPeerID);
+	let [myPeerID, setMyPeerID] = useState('');
+	let [isHost, setIsHost] = useState(false);
+	let { peerIDs, username, HostUsername } = useConnect(myPeerID);
 	let [Loaded, setLoaded] = useState(false);
-	let [_MEDIA_STREAM_, setMediaStream]: [MediaStream, any] = useState(
-		new MediaStream(),
-	);
+	let [_MEDIA_STREAM_, setMediaStream]: [MediaStream, any] = useState(null);
 	let [micState, setMicState] = useState(null);
 	let [peerDataConnections, setPeerDataConnections]: [
 		Array<PeerDataConnection>,
@@ -80,128 +84,126 @@ export default function Room() {
 		Array<PeerMediaConnection>,
 		any,
 	] = useState([]);
-	let [hostDataConnection, setDataHostConnection]: [PeerDataConnection, any] = useState(null);
 	let msRef = useRef(_MEDIA_STREAM_);
 	let peerRef = useRef(glbl.Peer);
 	let peerDataConnectionsRef = useRef(peerDataConnections);
 	// these might close by themselves
 	let peerMediaConnectionsRef = useRef(peerMediaConnections);
-	let timerID = useRef(null);
 
 	useEffect(() => {
 		// cleans up after the component unmounts
 		return () => {
 			msRef.current
-				.getTracks()
+				?.getTracks()
 				.forEach((track: MediaStreamTrack) => track.stop());
-			peerDataConnectionsRef.current.forEach((connection) => connection.dataConnection.close());
-			peerRef.current?.destroy();
-			clearTimeout(timerID.current);
+			peerDataConnectionsRef.current.forEach((connection: PeerDataConnection) => connection.dataConnection.close());
+			peerMediaConnectionsRef.current.forEach(
+				(connection: PeerMediaConnection) => connection.mediaConnection.close(),
+			);
+			peerRef.current.destroy();
+			glbl.setPeer(null);
 		};
 	}, []);
 
 	useEffect(() => {
-		if (_HostPeerID_.length > 0 && glbl.Peer.id !== _HostPeerID_) {
-			setHostPeerID(HostPeerID);
-			let conn = glbl.Peer.connect(_HostPeerID_);
-			conn.on('open', () => {
-				conn.on('data', (HostData: DataChannelDataType) => {
-					switch (HostData.type) {
-						case 'init':
-							{
-								setDataHostConnection({
-									name: HostData.name,
-									dataConnection: conn,
-								});
-								setPeerDataConnections((prevPeerDataConnections) => {
-									let newPeerConnections = [
-										...prevPeerDataConnections,
-										{
-											name: HostData.name,
-											dataConnection: conn,
-										},
-									];
-									peerDataConnectionsRef.current = newPeerConnections;
-									return newPeerConnections;
-								});
-								HostData.PeerIDs.forEach((peerID) => {
-									let peerconnection = glbl.Peer.connect(peerID);
-									peerconnection.on('open', () => {
-										peerconnection.on(
-											'data',
-											(PeerData: DataChannelDataType) => {
-												setPeerDataConnections(
-													(
-														prevPeerDataConnections: Array<PeerDataConnection>,
-													) => {
-														let newPeerConnections = [
-															...prevPeerDataConnections,
-															{
-																name: PeerData.name,
-																dataConnection: conn,
-															},
-														];
-														peerDataConnectionsRef.current = newPeerConnections;
-														return newPeerConnections;
-													},
-												);
-											},
-										);
-										peerconnection.send({ name: username });
-									});
-									peerconnection.on('error', (e) => {
-										console.error('peerconnection error', e);
-									});
-									peerconnection.on('close', () => {
-										setPeerDataConnections(
-											(prevPeerDataConnections: Array<PeerDataConnection>) => {
-												console.log(
-													'find?',
-													prevPeerDataConnections.find(
-														(peerStream: PeerDataConnection) =>
-															peerStream.dataConnection.peer
-																=== peerconnection.peer,
-													),
-												);
-												return prevPeerDataConnections.filter(
-													(peerStream: PeerDataConnection) =>
-														peerStream.dataConnection.peer
-															!== peerconnection.peer,
-												);
-											},
-										);
-									});
-								});
-							}
-							break;
-						case 'mute':
-							{
-							}
-							break;
-						case 'off_stage':
-							{
-							}
-							break;
-						case 'on_stage':
-							{
-							}
-							break;
-						default:
-							break;
-					}
+		if (glbl.Peer === null) {
+			(async () => {
+				let P = new (await import('peerjs')).default();
+				glbl.setPeer(P);
+				peerRef.current = P;
+				P.on('open', (id) => {
+					setLoaded(true);
+					setMyPeerID(id);
 				});
-				conn.send({ name: username });
-			});
-			conn.on('error', (e) => {
-				console.log('conn error', e);
-			});
-			conn.on('close', () => {
-			});
+			})();
+		} else {
+			setLoaded(true);
 		}
-	}, [HostPeerID]);
+	}, [glbl.Peer]);
 
 	useEffect(() => {
-		if (username.length > 0) {
+		if (
+			username.length > 0
+			&& peerIDs.length > 0
+			&& HostUsername.length > 0
+			&& myPeerID.length > 0
+		) {
+			if (username === HostUsername) {
+				setIsHost(true);
+			}
+
+			peerIDs.forEach((peerID) => {
+				if (peerID !== myPeerID) {
+					let conn = glbl.Peer.connect(peerID);
+					if (conn === undefined) {
+						return;
+					}
+					conn.on('open', () => {
+						conn.on('data', (data: DataChannelDataType) => {
+							switch (data.type) {
+								case 'name':
+									{
+										setPeerDataConnections(
+											(prevPeerDataConnections: Array<PeerDataConnection>) => {
+												let newPeerDataConnections = [
+													...prevPeerDataConnections,
+												];
+												newPeerDataConnections.forEach(
+													(pdc: PeerDataConnection) => {
+														if (pdc.dataConnection.peer === conn.peer) {
+															pdc.name = data.name;
+														}
+													},
+												);
+												peerDataConnectionsRef.current = newPeerDataConnections;
+												return newPeerDataConnections;
+											},
+										);
+									}
+									break;
+								default:
+									break;
+							}
+						});
+						setPeerDataConnections(
+							(prevPeerDataConnections: Array<PeerDataConnection>) => {
+								if (
+									prevPeerDataConnections.some(
+										(pdc: PeerDataConnection) => pdc.dataConnection.peer === conn.peer,
+									)
+								) {
+									return prevPeerDataConnections;
+								}
+								let newPeerDataConnections = [
+									...prevPeerDataConnections,
+									{
+										name: null,
+										dataConnection: conn,
+									},
+								];
+								peerDataConnectionsRef.current = newPeerDataConnections;
+								return newPeerDataConnections;
+							},
+						);
+						conn.send({ type: 'name', name: username });
+					});
+					conn.on('error', (e) => {});
+					conn.on('close', () => {
+						setPeerDataConnections(
+							(prevPeerDataConnections: Array<PeerDataConnection>) => {
+								return prevPeerDataConnections.filter(
+									(pdc: PeerDataConnection) => pdc.dataConnection.peer !== conn.peer,
+								);
+							},
+						);
+					});
+				}
+			});
+		}
+	}, [peerIDs, HostUsername, username, myPeerID]);
+
+	useEffect(() => {
+		if (username.length > 0 && HostUsername.length > 0 && myPeerID.length > 0) {
 			// for peers that are not the host
 			glbl.Peer.on('call', (call) => {
 				call.on('error', (e) => {
@@ -212,88 +214,107 @@ export default function Room() {
 				call.on('stream', (remoteStream: MediaStream) => {
 					setPeerMediaConnections(
 						(prevPeerMediaConnections: Array<PeerMediaConnection>) => {
+							if (
+								prevPeerMediaConnections.some(
+									(pmc: PeerMediaConnection) => pmc.mediaConnection.peer === call.peer,
+								)
+							) {
+								return prevPeerMediaConnections;
+							}
+							let newMediaConnection = {
+								name: null,
+								mediaStream: remoteStream,
+								mediaConnection: call,
+							};
+							setPeerDataConnections(
+								(prevPeerDataConnections: Array<PeerDataConnection>) => {
+									prevPeerDataConnections.forEach((pdc: PeerDataConnection) => {
+										if (pdc.dataConnection.peer === call.peer) {
+											newMediaConnection.name = pdc.name;
+										}
+									});
+									return prevPeerDataConnections;
+								},
+							);
 							let newPeerConnections = [
 								...prevPeerMediaConnections,
-								{
-									name: null,
-									mediaStream: remoteStream,
-									mediaConnection: call,
-								},
+								newMediaConnection,
 							];
+							peerMediaConnectionsRef.current = newPeerConnections;
 							return newPeerConnections;
 						},
 					);
 					console.log('open?', call.open);
 				});
 				call.on('close', () => {
-					console.log(call.peer, 'closed');
+					setPeerMediaConnections(
+						(prevPeerMediaConnections: Array<PeerMediaConnection>) => {
+							return prevPeerMediaConnections.filter(
+								(pmc: PeerMediaConnection) => pmc.mediaConnection.peer !== call.peer,
+							);
+						},
+					);
 				});
 			});
 
 			glbl.Peer.on('connection', (conn) => {
 				conn.on('open', () => {
 					conn.on('data', (data: DataChannelDataType) => {
-						// we put the setstate function in here because we get
-						// access to the data information but this also means that this callback
-						// only runs when the remote peer on the other end sends information once the connection is
-						// established
-						setPeerDataConnections(
-							(prevPeerDataConnections: Array<PeerDataConnection>) => {
-								if (prevPeerDataConnections.some((dc: PeerDataConnection) => dc.dataConnection.peer === conn.peer)) {
-									return prevPeerDataConnections;
+						switch (data.type) {
+							case 'name':
+								{
+									setPeerDataConnections(
+										(prevPeerDataConnections: Array<PeerDataConnection>) => {
+											let newPeerDataConnections = [...prevPeerDataConnections];
+											newPeerDataConnections.forEach(
+												(pdc: PeerDataConnection) => {
+													if (pdc.dataConnection.peer === conn.peer) {
+														pdc.name = data.name;
+													}
+												},
+											);
+											peerDataConnectionsRef.current = newPeerDataConnections;
+											return newPeerDataConnections;
+										},
+									);
 								}
-								let newPeerChannels = [
-									...prevPeerDataConnections,
-									{ name: data.name, dataConnection: conn },
-								];
-								peerDataConnectionsRef.current = newPeerChannels;
-								// for host
-								if (glbl.Peer.id === _HostPeerID_) {
-									let peercall = glbl.Peer.call(conn.peer);
-									peercall.on('stream', (remoteStream: MediaStream) => {
-										setPeerMediaConnections(
-											(prevPeerMediaConnections: Array<PeerMediaConnection>) => {
-												let newPeerConnections = [
-													...prevPeerMediaConnections,
-													{
-														name: null,
-														mediaStream: remoteStream,
-														mediaConnection: peercall,
-													},
-												];
-												return newPeerConnections;
-											},
-										);
-									});
-								}
-								conn.send({ type: 'init', name: username });
-								return newPeerChannels;
-							},
-						);
+								break;
+							default:
+								break;
+						}
 					});
-				});
-				conn.on('error', (e) => {
-					console.log('conn error', e);
-				});
-				conn.on('close', () => {
-					console.log(conn.peer, 'ended0', peerRef.current);
 					setPeerDataConnections(
 						(prevPeerDataConnections: Array<PeerDataConnection>) => {
-							console.log(
-								'find?',
-								prevPeerDataConnections.find(
-									(peerStream: PeerDataConnection) => peerStream.dataConnection.peer === conn.peer,
-								),
-							);
+							if (
+								prevPeerDataConnections.some(
+									(dc: PeerDataConnection) => dc.dataConnection.peer === conn.peer,
+								)
+							) {
+								return prevPeerDataConnections;
+							}
+							let newPeerChannels = [
+								...prevPeerDataConnections,
+								{ name: null, dataConnection: conn },
+							];
+							peerDataConnectionsRef.current = newPeerChannels;
+							return newPeerChannels;
+						},
+					);
+					conn.send({ type: 'name', name: username });
+				});
+				conn.on('error', (e) => {});
+				conn.on('close', () => {
+					setPeerDataConnections(
+						(prevPeerDataConnections: Array<PeerDataConnection>) => {
 							return prevPeerDataConnections.filter(
-								(peerStream: PeerDataConnection) => peerStream.dataConnection.peer !== conn.peer,
+								(pdc: PeerDataConnection) => pdc.dataConnection.peer !== conn.peer,
 							);
 						},
 					);
 				});
 			});
 		}
-	}, [username]);
+	}, [username, HostUsername, myPeerID]);
 
 	useEffect(() => {
 		if (glbl.authenticated) {
@@ -301,9 +322,144 @@ export default function Room() {
 		}
 	}, [glbl.authenticated]);
 
-	return Loaded !== null && glbl.authenticated === true
+	useEffect(() => {
+		if (isHost) {
+			navigator.mediaDevices
+				.getUserMedia({ audio: true })
+				.then((micMediaStream) => {
+					setMediaStream(micMediaStream);
+				});
+		}
+	}, [isHost]);
+
+	useEffect(() => {
+		if (
+			peerDataConnections.length > 0
+			&& peerIDs.length > 0
+			&& _MEDIA_STREAM_ !== null
+			&& myPeerID.length > 0
+			&& username.length > 0
+		) {
+			msRef.current = _MEDIA_STREAM_;
+			[
+				...peerIDs,
+				...peerDataConnections.map(
+					(pdc: PeerDataConnection) => pdc.dataConnection.peer,
+				),
+			].forEach((peerid) => {
+				if (peerid !== myPeerID && glbl.Peer !== null) {
+					let call = glbl.Peer.call(peerid, _MEDIA_STREAM_);
+					if (call === undefined) {
+						return;
+					}
+					call.on('stream', (remoteStream: MediaStream) => {
+						setPeerMediaConnections(
+							(prevPeerMediaConnections: Array<PeerMediaConnection>) => {
+								if (
+									prevPeerMediaConnections.some(
+										(pmc: PeerMediaConnection) => pmc.mediaConnection.peer === peerid,
+									)
+								) {
+									return prevPeerMediaConnections;
+								}
+								let newMediaConnection: PeerMediaConnection = {
+									name: null,
+									mediaStream: remoteStream,
+									mediaConnection: call,
+								};
+								peerDataConnections.forEach((pdc: PeerDataConnection) => {
+									if (pdc.dataConnection.peer === peerid) {
+										newMediaConnection.name = pdc.name;
+									}
+								});
+								let newPeerMediaConnections = [
+									...prevPeerMediaConnections,
+									newMediaConnection,
+								];
+								peerMediaConnectionsRef.current = newPeerMediaConnections;
+								return newPeerMediaConnections;
+							},
+						);
+					});
+					call.on('close', () => {
+						setPeerMediaConnections(
+							(prevPeerMediaConnections: Array<PeerMediaConnection>) => {
+								return prevPeerMediaConnections.filter(
+									(pmc: PeerMediaConnection) => pmc.mediaConnection.peer !== call.peer,
+								);
+							},
+						);
+					});
+				}
+			});
+		}
+	}, [
+		_MEDIA_STREAM_,
+		myPeerID,
+		peerIDs,
+		username,
+		peerDataConnections,
+		glbl.Peer,
+	]);
+
+	return Loaded && glbl.authenticated
 		? (
-			<div className='h-full w-full'>
+			<div className='h-full w-full flex flex-col items-center'>
+				<div className='h-full w-5/6 md:w-1/2 border-b border-black'>
+					<h1 className='text-2xl font-bold text-center'>speakers</h1>
+					<div className='overflow-y-auto w-full grid grid-cols-5'>
+						{isHost && myPeerID.length > 0 && HostUsername.length > 0 ? <Roomer name={username} RoomTalker={true} /> : null}
+						{peerMediaConnections.map((pmc: PeerMediaConnection) =>
+							pmc.mediaConnection.open
+								? (
+									<Roomer
+										key={pmc.name}
+										name={pmc.name}
+										mediaStream={pmc.mediaStream}
+										RoomTalker={true}
+									/>
+								)
+								: null
+						)}
+					</div>
+				</div>
+				<div className='h-full w-5/6 md:w-1/2'>
+					<h2 className='text-xl font-bold text-center'>listeners</h2>
+					<div className='overflow-y-auto w-full grid grid-cols-5'>
+						{!isHost && myPeerID.length > 0 && HostUsername.length > 0 ? <Roomer name={username} RoomTalker={false} /> : null}
+						{peerDataConnections.map((pdc: PeerDataConnection) =>
+							pdc.dataConnection.open
+								&& !peerMediaConnections.some(
+									(pmc: PeerMediaConnection) => pmc.name === pdc.name,
+								)
+								? <Roomer key={pdc.name} name={pdc.name} RoomTalker={false} />
+								: null
+						)}
+					</div>
+				</div>
+				<Link href='/home'>
+					<a className='bg-black text-white shadow shadow-black p-2 rounded'>
+						leave
+					</a>
+				</Link>
+				<button className='bg-red-400' onClick={() => console.log(glbl.Peer.id)}>
+					show id
+				</button>
+				<button
+					className='bg-red-400'
+					onClick={() => console.log(peerDataConnections, peerDataConnections.length)}
+				>
+					show data connections
+				</button>
+				<button className='bg-red-400' onClick={() => console.log(isHost)}>
+					isHost
+				</button>
+				<button
+					className='bg-red-400'
+					onClick={() => console.log(peerMediaConnections)}
+				>
+					mediaConnections
+				</button>
 			</div>
 		)
 		: (

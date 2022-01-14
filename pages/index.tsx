@@ -35,34 +35,27 @@ export default function Index() {
 		}
 	}, [glbl.authenticated, glbl.in_room]);
 	return (
-		<div className='grid place-items-center h-full'>
-			<div className='grid grid-cols-4 grid-rows-3 p-5 rounded md:shadow md:shadow-black'>
-				<div className='row-start-1 col-span-4 grid place-items-center text-center'>
-					<div>
-						<div className='text-5xl text-center font-bold'>rooms</div>
-						<div className='text-xl'>where you can</div>
-					</div>
+		<div className='h-full w-full flex flex-col justify-center items-center overflow-y-auto'>
+			<div className='shadow shadow-black w-5/6 lg:w-1/4 lg:h-3/6 lg:w-1/2 rounded p-3 min-w-fit'>
+				<h1 className='text-3xl md:text-5xl font-bold'>Rooms</h1>
+				<ol className='list-decimal list-inside text-md md:text-lg m-1 overflow-y-auto lg:h-5/6 font-semibold'>
+					<li className='m-3'>A place to talk.</li>
+					<li className='m-3'>A place to discuss.</li>
+					<li className='m-3'>A space that is or may be occupied.</li>
+					<li className='m-3'>The people present in such an area.</li>
+					<li className='m-3'>Suitable opportunity or scope.</li>
+				</ol>
+			</div>
+			<div className='md:text-3xl flex justify-evenly w-5/6 lg:w-1/4 m-3'>
+				<div className='flex justify-center m-1'>
+					<Link href='/register'>
+						<a className='bg-black text-white p-2 rounded shadow shadow-black w-32 md:w-48 text-center'>register</a>
+					</Link>
 				</div>
-				{giflist.map((gif, index) => (
-					<div
-						key={index}
-						className='grid place-items-center m-1 rounded-sm p-2'
-					>
-						<img src={gif.src} alt={gif.alt} width='100px' />
-						<div className='text-xl font-bold'>{gif.caption}</div>
-					</div>
-				))}
-				<div className='text-center row-start-3 col-span-4 grid grid-cols-2'>
-					<div className='grid place-items-center'>
-						<Link href='/register'>
-							<a className='text-3xl underline p-2 md:w-48 rounded bg-black text-white'>register</a>
-						</Link>
-					</div>
-					<div className='grid place-items-center'>
-						<Link href='/login'>
-							<a className='text-3xl underline p-2 md:w-48 rounded bg-black text-white'>login</a>
-						</Link>
-					</div>
+				<div className='flex justify-center m-1'>
+					<Link href='/login'>
+						<a className='bg-black text-white p-2 rounded shadow shadow-black w-32 md:w-48 text-center'>login</a>
+					</Link>
 				</div>
 			</div>
 		</div>
