@@ -113,12 +113,8 @@ export default function Profile() {
 						<p className=''>{room.roomDescription}</p>
 						<button
 							className='bg-black p-2 m-1 text-white rounded shadow shadow-black'
-							onClick={async () => {
-								let P = new (await import('peerjs')).default();
-								glbl.setPeer(P);
-								P.on('open', (id) => {
-									router.push('/' + room.id);
-								});
+							onClick={() => {
+								router.push('/' + room.id);
 							}}
 						>
 							join

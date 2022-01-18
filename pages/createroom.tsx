@@ -11,7 +11,7 @@ let CreateRoom = () => {
 			<form className='flex flex-col items-center justify-center w-5/6 h-full md:h-1/2 md:w-1/2 md:shadow md:shadow-black md:p-5 md:rounded'>
 				<label className='block font-bold' htmlFor='roomname'>The Room Name</label>
 				<input
-					className='border border-black p-1 rounded md:w-1/2 outline-none w-full'
+					className='ring ring-black p-1 rounded md:w-1/2 outline-none w-full'
 					type='text'
 					name='roomname'
 					onChange={(e) => setRoomName(e.target.value)}
@@ -23,7 +23,7 @@ let CreateRoom = () => {
 				<div>characters left: {30 - roomname.length}</div>
 				<label className='block font-bold' htmlFor='roomdesc'>The Room Description</label>
 				<textarea
-					className='border border-black rounded p-1 resize-none w-full h-1/4 md:w-1/2 md:h-1/3 outline-none'
+					className='ring ring-black rounded p-1 resize-none w-full h-1/4 md:w-1/2 md:h-1/3 outline-none'
 					onChange={(e) => setRoomDesc(e.target.value)}
 					value={roomDesc}
 					minLength={20}

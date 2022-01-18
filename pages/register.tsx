@@ -28,7 +28,7 @@ export default function Register() {
 				<label className='w-full md:w-1/2 flex flex-col items-center'>
 					<div className='text-2xl text-center'>Email (not required)</div>
 					<input
-						className='outline-none rounded-sm p-3 m-2 border border-black'
+						className='outline-none rounded p-3 m-2 ring ring-black'
 						type='Email'
 						placeholder='Email'
 						name='Email'
@@ -39,7 +39,7 @@ export default function Register() {
 				<label className='w-full md:w-1/2 flex flex-col items-center'>
 					<div className='text-2xl'>Username</div>
 					<input
-						className='outline-none rounded-sm p-3 m-2 border border-black'
+						className='outline-none rounded p-3 m-2 ring ring-black'
 						type='text'
 						placeholder='Username'
 						name='username'

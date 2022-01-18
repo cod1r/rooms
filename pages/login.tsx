@@ -26,7 +26,7 @@ export default function Login() {
 				<label className='w-full md:w-1/2 flex flex-col items-center'>
 					<div className='text-2xl'>Username</div>
 					<input
-						className='outline-none rounded p-3 m-2 border border-black'
+						className='outline-none rounded p-3 m-2 ring ring-black'
 						type='text'
 						placeholder='Username'
 						name='username'
@@ -37,7 +37,7 @@ export default function Login() {
 				<label className='w-full md:w-1/2 flex flex-col items-center'>
 					<div className='text-2xl'>Password</div>
 					<input
-						className='outline-none rounded p-3 m-2 border border-black'
+						className='outline-none rounded p-3 m-2 ring ring-black'
 						type='password'
 						placeholder='Password'
 						name='password'

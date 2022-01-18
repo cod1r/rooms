@@ -1,10 +1,4 @@
-import {
-	BatchGetItemCommand,
-	GetItemCommand,
-	PutItemCommand,
-	QueryCommand,
-	UpdateItemCommand,
-} from '@aws-sdk/client-dynamodb';
+import { GetItemCommand, PutItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
 import jwt from 'jsonwebtoken';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { client } from '../../database/databaseinit';
@@ -43,6 +37,7 @@ export default function joinroom(req: NextApiRequest, res: NextApiResponse) {
 					) {
 						let QueryResponse = await client.send(
 							new QueryCommand({
+								IndexName: 'RoomID-index',
 								KeyConditionExpression: 'RoomID = :val',
 								ExpressionAttributeValues: {
 									':val': {
