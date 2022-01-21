@@ -6,6 +6,8 @@ let globals = {
 	setInRoom: (state) => {},
 	Peer: null,
 	setPeer: (state) => {},
+	colorMode: null,
+	setColorMode: (state) => {},
 };
 let GLOBALS = createContext(globals);
 export { GLOBALS };

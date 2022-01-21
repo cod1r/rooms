@@ -4,6 +4,7 @@ import { GLOBALS } from '../contexts/globals';
 export default function Login() {
 	let [username, setUsername] = useState('');
 	let [password, setPassword] = useState('');
+	let [errorMsg, setError] = useState('');
 	let glbl = useContext(GLOBALS);
 	let submitHandler = (e) => {
 		e.preventDefault();
@@ -17,11 +18,15 @@ export default function Login() {
 			if (res.status == 200) {
 				glbl.setAuthenticated(true);
 				router.push('/home');
+			} else if (res.status === 401) {
+				let { error } = await res.json();
+				setError(error);
 			}
 		});
 	};
 	return (
 		<div className='h-full w-full grid place-items-center'>
+			<div className='dark:text-white'>{errorMsg}</div>
 			<form className='md:w-1/3 md:h-1/2 flex flex-col justify-center items-center md:shadow md:shadow-black rounded'>
 				<label className='w-full md:w-1/2 flex flex-col items-center'>
 					<div className='text-2xl'>Username</div>

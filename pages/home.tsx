@@ -26,13 +26,13 @@ let Home = () => {
 		});
 	}, []);
 	return (
-		<div className='h-full w-full flex flex-col items-center'>
-			<div className='text-center text-2xl font-bold'>rooms</div>
-			<ul className='text-center w-5/6 md:w-1/3 h-full overflow-y-auto shadow shadow-black rounded'>
+		<div className='h-full w-full flex flex-col items-center dark:bg-slate-600'>
+			<div className='text-center text-2xl font-bold dark:text-white'>rooms</div>
+			<ul className='text-center w-5/6 md:w-2/3 h-full overflow-y-auto shadow shadow-black rounded'>
 				{rooms.map((room: RoomType) => (
 					<li key={room.id} className='text-center'>
-						<h1 className='text-lg font-bold'>{room.name}</h1>
-						<p className=''>{room.roomDescription}</p>
+						<h1 className='text-lg font-bold text-black dark:text-white'>{room.name}</h1>
+						<p className='text-black dark:text-white'>{room.roomDescription}</p>
 						<button
 							className='bg-black p-2 m-1 text-white rounded shadow shadow-black'
 							onClick={() => {
@@ -44,7 +44,7 @@ let Home = () => {
 					</li>
 				))}
 			</ul>
-			<div className='block grid grid-cols-2'>
+			<div className='grid grid-cols-3'>
 				<Link href='/me'>
 					<a className='bg-black p-2 m-1 text-white rounded shadow shadow-black text-center'>me page</a>
 				</Link>
@@ -53,6 +53,12 @@ let Home = () => {
 						create room
 					</a>
 				</Link>
+				<button
+					className='bg-black p-2 m-1 text-white rounded shadow shadow-black'
+					onClick={() => glbl.setColorMode(glbl.colorMode === 'light' ? 'dark' : 'light')}
+				>
+					switch to {glbl.colorMode === 'light' ? 'dark' : 'light'} mode
+				</button>
 			</div>
 		</div>
 	);

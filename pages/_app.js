@@ -1,12 +1,15 @@
-import router from 'next/router';
-import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+import { useEffect, useRef, useState } from 'react';
 import { GLOBALS } from '../contexts/globals';
 import '../styles/globals.css';
 function MyApp({ Component, pageProps }) {
+	let router = useRouter();
 	let [authenticated, setAuthenticated] = useState(false);
 	let [in_room, setInRoom] = useState(false);
 	let [loaded, setLoaded] = useState(false);
 	let [peer, setPeer] = useState(null);
+	let [colorMode, setColorMode] = useState(null);
+	let colorRef = useRef();
 	useEffect(() => {
 		console.log('_app useeffect here');
 		let controller = new AbortController();
@@ -37,6 +40,26 @@ function MyApp({ Component, pageProps }) {
 			})
 			.catch((err) => console.error(err));
 	}, []);
+
+	useEffect(() => {
+		if (colorMode !== null) {
+			localStorage.setItem('colorMode', colorMode);
+			// tries both because I don't want to store previous colorMode
+			if (colorRef.current.classList.contains('dark') && colorMode === 'light') {
+				colorRef.current.classList.remove('dark');
+			} else {
+				colorRef.current.classList.add('dark');
+			}
+		} else if (colorMode === null) {
+			if (localStorage.getItem('colorMode') === null) {
+				setColorMode('light');
+				localStorage.setItem('colorMode', 'light');
+			} else {
+				setColorMode(localStorage.getItem('colorMode'));
+			}
+		}
+	}, [colorMode]);
+
 	return (
 		<GLOBALS.Provider
 			value={{
@@ -46,9 +69,11 @@ function MyApp({ Component, pageProps }) {
 				setInRoom: (state) => setInRoom(state),
 				Peer: peer,
 				setPeer: (state) => setPeer(state),
+				colorMode: colorMode,
+				setColorMode: (state) => setColorMode(state),
 			}}
 		>
-			<div className='h-screen w-screen'>
+			<div ref={colorRef} className='h-screen w-screen'>
 				{loaded ? <Component {...pageProps} /> : null}
 			</div>
 		</GLOBALS.Provider>

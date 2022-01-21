@@ -1,10 +1,16 @@
-import { GetItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
+import { QueryCommand } from '@aws-sdk/client-dynamodb';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { client } from '../../database/databaseinit';
+
+interface CredentialBody {
+	username: string;
+	password: string;
+}
+
 export default function login(req: NextApiRequest, res: NextApiResponse) {
-	let credentials = JSON.parse(req.body);
+	let credentials: CredentialBody = JSON.parse(req.body);
 	client
 		.send(
 			new QueryCommand({
@@ -54,12 +60,18 @@ export default function login(req: NextApiRequest, res: NextApiResponse) {
 								},
 							);
 						} else {
-							res.status(401).send({});
+							res.status(401).send({
+								error: 'username or password is incorrect.',
+							});
 						}
 					},
 				);
+			} else if (dbResponse.Count === 0) {
+				res.status(401).send({
+					error: 'username or password is incorrect.',
+				});
 			} else {
-				res.status(401).send({});
+				res.status(500).send({});
 			}
 		})
 		.catch((e) => {

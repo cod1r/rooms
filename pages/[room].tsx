@@ -73,7 +73,7 @@ let Roomer = ({ name, RoomTalker, isHost, setMessage, username, mediaStream = nu
 	return (
 		<div className='flex flex-col items-center shadow shadow-black m-1 rounded p-1 w-24'>
 			<div className='rounded-full bg-black w-16 h-16'></div>
-			<h3 className='text-ellipsis overflow-x-hidden w-full text-center'>{name}</h3>
+			<h3 className='text-ellipsis overflow-x-hidden w-full text-center dark:text-white'>{name}</h3>
 			{isHost && name !== username
 				? (
 					<button
@@ -138,6 +138,7 @@ export default function Room() {
 	] = useState([]);
 	let [message, setMessage]: [Message, any] = useState(null);
 	let [userSearch, setUserSearch]: [string, any] = useState('');
+	let [muteState, setMuteState] = useState(false);
 	let msRef = useRef(_MEDIA_STREAM_);
 	let peerRef = useRef(glbl.Peer);
 	let peerDataConnectionsRef = useRef(peerDataConnections);
@@ -541,9 +542,9 @@ export default function Room() {
 
 	return Loaded && glbl.authenticated
 		? (
-			<div className='h-full w-full flex flex-col items-center'>
+			<div className='h-full w-full flex flex-col items-center dark:bg-slate-600'>
 				<div className='h-full w-5/6 md:w-1/2 border-b border-black'>
-					<h1 className='text-2xl font-bold text-center'>speakers</h1>
+					<h1 className='text-2xl font-bold text-center dark:text-white'>speakers</h1>
 					<input
 						className='w-full outline-none p-2 ring ring-black rounded m-1'
 						type='search'
@@ -585,7 +586,7 @@ export default function Room() {
 					</div>
 				</div>
 				<div className='h-full w-5/6 md:w-1/2'>
-					<h2 className='text-xl font-bold text-center'>listeners</h2>
+					<h2 className='text-xl font-bold text-center dark:text-white'>listeners</h2>
 					<div className='overflow-y-auto w-full flex flex-wrap'>
 						{!isHost && !micStateForNonHost
 							? (
@@ -627,7 +628,17 @@ export default function Room() {
 						</a>
 					</Link>
 					{(micStateForNonHost || isHost) && _MEDIA_STREAM_ !== null
-						? <button className='bg-black p-2 text-white rounded m-1 shadow shadow-black'>mute mic</button>
+						? (
+							<button
+								onClick={() => {
+									_MEDIA_STREAM_.getTracks().forEach((track: MediaStreamTrack) => track.enabled = !muteState);
+									setMuteState((prevState) => !prevState);
+								}}
+								className='bg-black p-2 text-white rounded m-1 shadow shadow-black'
+							>
+								{muteState ? 'unmute' : 'mute'} mic
+							</button>
+						)
 						: null}
 				</div>
 			</div>

@@ -4,8 +4,21 @@ import jwt from 'jsonwebtoken';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { v1 } from 'uuid';
 import { client } from '../../database/databaseinit';
+
+interface CredentialBody {
+	email: string;
+	username: string;
+	password: string;
+}
+
 export default function register(req: NextApiRequest, res: NextApiResponse) {
-	let credentials = JSON.parse(req.body);
+	let credentials: CredentialBody = JSON.parse(req.body);
+	if (credentials.username.length < 5 || credentials.password.length < 8) {
+		res.status(401).send({
+			error: 'Usernames must be longer than 5 characters and password must be longer than 8.',
+		});
+		return;
+	}
 	bcrypt.hash(credentials.password, 10, (err, hash) => {
 		if (err) {
 			console.error(err);
@@ -30,7 +43,7 @@ export default function register(req: NextApiRequest, res: NextApiResponse) {
 				let uid = v1();
 				if (
 					QueryCommandResponse.$metadata.httpStatusCode === 200
-					&& QueryCommandResponse.Items.length === 0
+					&& QueryCommandResponse.Count === 0
 				) {
 					let PutItemResponse = await client.send(
 						new PutItemCommand({
@@ -84,10 +97,14 @@ export default function register(req: NextApiRequest, res: NextApiResponse) {
 							},
 						);
 					} else {
-						res.status(401).send({});
+						res.status(500).send({});
 					}
+				} else if (QueryCommandResponse.Count > 0) {
+					res.status(401).send({
+						error: 'Username already exists',
+					});
 				} else {
-					res.status(401).send({});
+					res.status(500).send({});
 				}
 			} catch (err) {
 				console.error(err);

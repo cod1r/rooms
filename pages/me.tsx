@@ -69,8 +69,8 @@ export default function Profile() {
 	};
 
 	return (
-		<div className='overflow-y-auto h-full w-full flex flex-col items-center'>
-			<div className='text-2xl font-bold text-center flex justify-center m-1'>
+		<div className='overflow-y-auto h-full w-full flex flex-col items-center dark:bg-slate-600'>
+			<div className='text-2xl font-bold text-center flex justify-center m-1 dark:text-white'>
 				{username}
 			</div>
 			<div className='w-full md:w-1/3 flex flex-col items-center'>
@@ -95,22 +95,22 @@ export default function Profile() {
 				<div className='w-full h-48 flex flex-col items-center m-2'>
 					<textarea
 						ref={textAreaRef}
-						className='text-center w-5/6 md:w-full h-full shadow shadow-black resize-none p-1 outline-none rounded'
+						className='text-center w-5/6 md:w-full h-full shadow shadow-black resize-none p-1 outline-none rounded dark:bg-gray-300'
 						onChange={(e) => setTextArea(e.target.value)}
 						maxLength={200}
 						disabled={!editMode}
 						value={textAreaValue}
 					>
 					</textarea>
-					{editMode ? <div>characters left: {200 - textAreaValue.length}</div> : null}
+					{editMode ? <div className='dark:text-white'>characters left: {200 - textAreaValue.length}</div> : null}
 				</div>
 			</div>
-			<div className='text-xl font-bold border-b border-black w-5/6 text-center pb-2'>My Rooms</div>
+			<div className='text-xl font-bold border-b border-black w-5/6 text-center pb-2 dark:text-white'>My Rooms</div>
 			<ul className='overflow-y-auto md:w-1/3 w-full h-full rounded'>
 				{rooms.map((room: RoomType) => (
 					<li key={room.id} className='text-center'>
-						<h1 className='text-lg font-bold'>{room.name}</h1>
-						<p className=''>{room.roomDescription}</p>
+						<h1 className='text-lg font-bold dark:text-white'>{room.name}</h1>
+						<p className='dark:text-white'>{room.roomDescription}</p>
 						<button
 							className='bg-black p-2 m-1 text-white rounded shadow shadow-black'
 							onClick={() => {
