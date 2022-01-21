@@ -1,9 +1,10 @@
 import Link from 'next/link';
-import router from 'next/router';
+import { useRouter } from 'next/router';
 import React, { useContext, useEffect, useState } from 'react';
 import { GLOBALS } from '../contexts/globals';
 
 export default function Index() {
+	let router = useRouter();
 	let glbl = useContext(GLOBALS);
 	// use effect here just in case register or login doesn't redirect user to home
 	useEffect(() => {

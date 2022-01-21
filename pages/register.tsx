@@ -1,12 +1,18 @@
-import router from 'next/router';
-import { useContext, useState } from 'react';
+import { useRouter } from 'next/router';
+import { useContext, useEffect, useState } from 'react';
 import { GLOBALS } from '../contexts/globals';
 export default function Register() {
+	let router = useRouter();
 	let [username, setUsername] = useState('');
 	let [password, setPassword] = useState('');
 	let [email, setEmail] = useState('');
 	let [errorMsg, setError] = useState('');
 	let glbl = useContext(GLOBALS);
+	useEffect(() => {
+		if (glbl.authenticated) {
+			router.push('/home');
+		}
+	}, [glbl.authenticated]);
 	let submitHandler = (e) => {
 		e.preventDefault();
 		if (username.length < 5 || password.length < 8) {
@@ -32,7 +38,7 @@ export default function Register() {
 	};
 	return (
 		<div className='h-full w-full grid place-items-center'>
-			<div className='dark:text-white'>{errorMsg}</div>
+			<div className=''>{errorMsg}</div>
 			<form className='w-1/2 h-1/2 flex flex-col justify-center items-center md:shadow md:shadow-black rounded'>
 				<label className='w-full md:w-1/2 flex flex-col items-center'>
 					<div className='text-2xl text-center'>Email (not required)</div>
