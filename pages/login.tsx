@@ -14,6 +14,10 @@ export default function Login() {
 	}, [glbl.authenticated]);
 	let submitHandler = (e) => {
 		e.preventDefault();
+		if (username.length === 0 || password.length === 0) {
+			setError('some fields are empty');
+			return;
+		}
 		fetch('/api/login', {
 			method: 'POST',
 			body: JSON.stringify({
@@ -32,8 +36,7 @@ export default function Login() {
 	};
 	return (
 		<div className='h-full w-full grid place-items-center'>
-			<div className=''>{errorMsg}</div>
-			<form className='md:w-1/3 md:h-1/2 flex flex-col justify-center items-center md:shadow md:shadow-black rounded'>
+			<form className='md:w-1/3 flex flex-col justify-center items-center md:shadow md:shadow-black rounded min-h-min'>
 				<label className='w-full md:w-1/2 flex flex-col items-center'>
 					<div className='text-2xl'>Username</div>
 					<input
@@ -61,6 +64,7 @@ export default function Login() {
 						<div className='hover:underline text-2xl bg-black text-white p-2 rounded shadow shadow-black'>Submit</div>
 					</button>
 				</div>
+				<div className='w-full break-words text-center'>{errorMsg}</div>
 			</form>
 		</div>
 	);

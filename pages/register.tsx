@@ -38,8 +38,7 @@ export default function Register() {
 	};
 	return (
 		<div className='h-full w-full grid place-items-center'>
-			<div className=''>{errorMsg}</div>
-			<form className='w-1/2 h-1/2 flex flex-col justify-center items-center md:shadow md:shadow-black rounded'>
+			<form className='w-1/2 flex flex-col justify-center items-center md:shadow md:shadow-black rounded max-h-min'>
 				<label className='w-full md:w-1/2 flex flex-col items-center'>
 					<div className='text-2xl text-center'>Email (not required)</div>
 					<input
@@ -65,7 +64,7 @@ export default function Register() {
 				<label className='w-full md:w-1/2 flex flex-col items-center'>
 					<div className='text-2xl'>Password</div>
 					<input
-						className='outline-none rounded-sm p-3 m-2 border border-black'
+						className='outline-none rounded p-3 m-2 ring ring-black'
 						type='password'
 						placeholder='Password'
 						name='password'
@@ -75,9 +74,10 @@ export default function Register() {
 				</label>
 				<div>
 					<button className='p-1 rounded-sm' onClick={submitHandler}>
-						<div className='hover:underline text-2xl'>Submit</div>
+						<div className='hover:underline text-2xl bg-black text-white p-2 m-1 rounded'>Submit</div>
 					</button>
 				</div>
+				<div className='w-full break-words text-center'>{errorMsg}</div>
 			</form>
 		</div>
 	);
