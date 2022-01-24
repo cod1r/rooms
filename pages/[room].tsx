@@ -1,4 +1,3 @@
-import { truncate } from 'fs';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { MutableRefObject, useContext, useEffect, useRef, useState } from 'react';
@@ -6,10 +5,23 @@ import { GLOBALS } from '../contexts/globals';
 
 // NOTE 1/21/2022 - I swapped to simple-peer. PeerJS is pretty much dead.
 
+// IMPORTANT NOTES
+// When a user joins a 'room', they are actually joining the signaling server's room, which is socket.io's room concept.
+// After that user joins, that user emits a 'newJoin' event to all the other users in that 'room', which then prompts those that
+// are already in that 'room' to generate a data Offer ( simple-peer ). That data offer gets sent to the signaling server by
+// emitting the 'dataOffer' event. The signaling server then sends that offer to the user that is trying to join. Once
+// that offer is sent, the user trying to join generates a data Answer to send to those that are already in the room. The data
+// answer is sent to the signaling server by emitting the 'dataAnswer' event. Once the data answer is sent to the proper socket id
+// connection, a p2p connection should be established.
+
 interface DataConnection {
 	name: string;
 	dataConnection: any;
-	mediaStream: any;
+}
+
+interface PeerMediaStream {
+	name: string;
+	mediaStream: MediaStream;
 }
 
 let Roomer = ({ name, isHost, Speaker, peer, username, mediaStream = null }) => {
@@ -27,7 +39,7 @@ let Roomer = ({ name, isHost, Speaker, peer, username, mediaStream = null }) => 
 					<button
 						className='bg-black p-2 text-white rounded'
 						onClick={() => {
-							peer.send(Speaker ? '0' : '1');
+							peer.send('1');
 						}}
 					>
 						{Speaker ? 'no talk' : 'allow talk'}
@@ -70,6 +82,7 @@ export default function Room() {
 	let { username, HostUsername } = useConnect();
 	let [Loaded, setLoaded] = useState(false);
 	let [peerDataConnections, setPeerDataConnections]: [Array<DataConnection>, any] = useState([]);
+	let [peerMediaInfo, setPeerMediaInfo]: [Array<PeerMediaStream>, any] = useState([]);
 	let [speakers, setSpeakers]: [Array<DataConnection>, any] = useState([]);
 	let [listeners, setListeners]: [Array<DataConnection>, any] = useState([]);
 	let [userSearch, setUserSearch]: [string, any] = useState('');
@@ -78,7 +91,7 @@ export default function Room() {
 	let msRef: MutableRefObject<MediaStream> = useRef(null);
 	let peerRef = useRef(null);
 	let socketRef = useRef(null);
-	let peerDataConnectionsRef = useRef(peerDataConnections);
+	let peerDataConnectionsRef: MutableRefObject<Array<DataConnection>> = useRef(peerDataConnections);
 
 	// effect is for cleaning up
 	useEffect(() => {
@@ -87,7 +100,8 @@ export default function Room() {
 			msRef.current
 				?.getTracks()
 				.forEach((track: MediaStreamTrack) => track.stop());
-			socketRef.current?.disconnect();
+			socketRef.current.disconnect();
+			peerDataConnectionsRef.current.forEach((pdc: DataConnection) => pdc.dataConnection.destroy());
 		};
 	}, []);
 
@@ -123,104 +137,106 @@ export default function Room() {
 							? { initiator: true, trickle: false, stream: msRef.current }
 							: { initiator: true, trickle: false },
 					);
-					newPeer.on('signal', data => {
-						socket.emit('data', data, socketid);
+
+					// this is the data answer required after getting a data offer in order to establish a p2p connection.
+					socket.on('dataAnswer', (dataAnswer) => {
+						newPeer.signal(dataAnswer);
 					});
-					newPeer.on('data', data => {
-						if (data === '0') {
-							setMicState(false);
-						} else if (data === '1') {
-							setMicState(true);
-						} else if (data === 'closeStream') {
-							setPeerDataConnections((prevDataConns: Array<DataConnection>) => [...prevDataConns]);
+
+					newPeer.on('error', err => {
+						console.error(err);
+					});
+					// generating a data offer to send to signaling server which then sends it to the joining user.
+					newPeer.on('signal', dataOffer => {
+						socket.emit('dataOffer', dataOffer, socketid);
+					});
+
+					newPeer.on('close', () => {
+						console.log('closing', peername);
+						if (socketRef.current !== null) {
+							setPeerDataConnections((prevDataConns: Array<DataConnection>) =>
+								prevDataConns.filter((pdc: DataConnection) => pdc.name !== peername)
+							);
+						}
+					});
+					newPeer.on('data', (data) => {
+						let msg = data.toString('utf8');
+						if (msg === '1') {
+						} else if (msg === 'closeStream') {
+							setPeerMediaInfo((prevMediaInfo: Array<PeerMediaStream>) =>
+								prevMediaInfo.filter((pmi: PeerMediaStream) => pmi.name !== peername)
+							);
 						}
 					});
 					newPeer.on('stream', stream => {
-						// we do this just in case the peerDataConnections isn't updated in time. React might decide to not update that
-						// array right away.
-						setPeerDataConnections((prevDataConns: Array<DataConnection>) => {
-							let fResult = prevDataConns.find((pdc: DataConnection) => pdc.name === peername);
-							if (fResult === undefined) {
-								let newDataConn: DataConnection = {
-									name: peername,
-									dataConnection: newPeer,
-									mediaStream: stream,
-								};
-								let newDataConns: Array<DataConnection> = [...prevDataConns, newDataConn];
-								peerDataConnectionsRef.current = newDataConns;
-								return newDataConns;
-							} else {
-								let newDataConns: Array<DataConnection> = [...prevDataConns];
-								let fIndex = prevDataConns.findIndex((pdc: DataConnection) => pdc.name === peername);
-								newDataConns[fIndex].mediaStream = stream;
-								peerDataConnectionsRef.current = newDataConns;
-								return newDataConns;
-							}
-						});
+						let newMediaStream: PeerMediaStream = {
+							name: peername,
+							mediaStream: stream,
+						};
+						setPeerMediaInfo((prevMediaInfo: Array<PeerMediaStream>) => [...prevMediaInfo, newMediaStream]);
 					});
-					let DataConnObject: DataConnection = {
-						name: peername,
-						dataConnection: newPeer,
-						mediaStream: null,
-					};
 					newPeer.on('connect', () => {
+						console.log('connected');
+						let newDataConn: DataConnection = {
+							name: peername,
+							dataConnection: newPeer,
+						};
 						setPeerDataConnections((prevDataConns: Array<DataConnection>) => {
-							let newDataConns: Array<DataConnection> = [...prevDataConns, DataConnObject];
+							let newDataConns: Array<DataConnection> = [...prevDataConns, newDataConn];
 							peerDataConnectionsRef.current = newDataConns;
 							return newDataConns;
 						});
 					});
 				});
 
-				// this is the data required for establishing a p2p connection.
-				socket.on('dataConnect', (data, peername) => {
+				// this is the data offer required for establishing a p2p connection.
+				socket.on('dataOffer', (dataOffer, socketid, peername) => {
 					let newPeer = new peer(msRef.current ? { trickle: false, stream: msRef.current } : { trickle: false });
-					newPeer.signal(data);
+					newPeer.on('signal', dataAnswer => {
+						socket.emit('dataAnswer', dataAnswer, socketid);
+					});
+					newPeer.signal(dataOffer);
+					newPeer.on('error', err => {
+						console.error(err);
+					});
 					newPeer.on('data', (data) => {
-						if (data === '0') {
-							setMicState(false);
-						} else if (data === '1') {
-							setMicState(true);
-						} else if (data === 'closeStream') {
-							setPeerDataConnections((prevDataConns: Array<DataConnection>) => [...prevDataConns]);
+						let msg = data.toString('utf8');
+						if (msg === '1') {
+						} else if (msg === 'closeStream') {
+							setPeerMediaInfo((prevMediaInfo: Array<PeerMediaStream>) =>
+								prevMediaInfo.filter((pmi: PeerMediaStream) => pmi.name !== peername)
+							);
+						}
+					});
+					newPeer.on('close', () => {
+						console.log('closing', peername);
+						if (socketRef.current !== null) {
+							setPeerDataConnections((prevDataConns: Array<DataConnection>) =>
+								prevDataConns.filter((pdc: DataConnection) => pdc.name !== peername)
+							);
 						}
 					});
 					newPeer.on('stream', stream => {
-						// we do this just in case the peerDataConnections isn't updated in time. React might decide to not update that
-						// array right away.
-						setPeerDataConnections((prevDataConns: Array<DataConnection>) => {
-							let fResult = prevDataConns.find((pdc: DataConnection) => pdc.name === peername);
-							if (fResult === undefined) {
-								let newDataConn: DataConnection = {
-									name: peername,
-									dataConnection: newPeer,
-									mediaStream: stream,
-								};
-								let newDataConns: Array<DataConnection> = [...prevDataConns, newDataConn];
-								peerDataConnectionsRef.current = newDataConns;
-								return newDataConns;
-							} else {
-								let newDataConns: Array<DataConnection> = [...prevDataConns];
-								let fIndex = prevDataConns.findIndex((pdc: DataConnection) => pdc.name === peername);
-								newDataConns[fIndex].mediaStream = stream;
-								peerDataConnectionsRef.current = newDataConns;
-								return newDataConns;
-							}
-						});
+						let newMediaStream: PeerMediaStream = {
+							name: peername,
+							mediaStream: stream,
+						};
+						setPeerMediaInfo((prevMediaInfo: Array<PeerMediaStream>) => [...prevMediaInfo, newMediaStream]);
 					});
-					let DataConnObject: DataConnection = {
-						name: peername,
-						dataConnection: newPeer,
-						mediaStream: null,
-					};
 					newPeer.on('connect', () => {
+						console.log('connected');
+						let newDataConn: DataConnection = {
+							name: peername,
+							dataConnection: newPeer,
+						};
 						setPeerDataConnections((prevDataConns: Array<DataConnection>) => {
-							let newDataConns: Array<DataConnection> = [...prevDataConns, DataConnObject];
+							let newDataConns: Array<DataConnection> = [...prevDataConns, newDataConn];
 							peerDataConnectionsRef.current = newDataConns;
 							return newDataConns;
 						});
 					});
 				});
+
 				if (username === HostUsername) {
 					setisHost(true);
 				}
@@ -229,31 +245,33 @@ export default function Room() {
 		}
 	}, [HostUsername, username]);
 
-	// whenever the peerDataConnections array updates, this effect runs to split the connections up between who can talk ( has a mediaStream ) and 
+	// whenever the peerDataConnections array updates, this effect runs to split the connections up between who can talk ( has a mediaStream ) and
 	// those that cannot
 	useEffect(() => {
-		setSpeakers(peerDataConnections.filter((pdc: DataConnection) => pdc.mediaStream !== null));
-		setListeners(peerDataConnections.filter((pdc: DataConnection) => pdc.mediaStream === null));
-	}, [peerDataConnections]);
+		setSpeakers(
+			peerDataConnections.filter((pdc: DataConnection) =>
+				peerMediaInfo.some((pmi: PeerMediaStream) => pdc.name === pmi.name) || pdc.name === HostUsername
+			),
+		);
+		setListeners(
+			peerDataConnections.filter((pdc: DataConnection) =>
+				!peerMediaInfo.some((pmi: PeerMediaStream) => pdc.name === pmi.name)
+			),
+		);
+	}, [peerDataConnections, peerMediaInfo, HostUsername]);
 
 	// if the user is a host or if the host has allowed a user to talk, we set their mic.
 	useEffect(() => {
-		if (isHost || micState) {
+		if (isHost) {
 			navigator.mediaDevices
 				.getUserMedia({ audio: true })
-				.then((micMediaStream) => {
+				.then((micMediaStream: MediaStream) => {
 					msRef.current = micMediaStream;
-					peerDataConnectionsRef.current.forEach((pdc: DataConnection) => pdc.dataConnection.addStream(msRef.current));
+					peerDataConnectionsRef.current.forEach((pdc: DataConnection) => pdc.dataConnection.addStream(micMediaStream));
+					setMicState(true);
 				});
-		} else {
-			if (msRef.current !== null) {
-				peerDataConnectionsRef.current.forEach((pdc: DataConnection) => pdc.dataConnection.removeStream(msRef.current));
-				peerDataConnectionsRef.current.forEach((pdc: DataConnection) => pdc.dataConnection.send('closeStream'));
-			}
-			msRef.current?.getTracks().forEach((track: MediaStreamTrack) => track.stop());
-			msRef.current = null;
 		}
-	}, [isHost, micState]);
+	}, [isHost]);
 
 	return Loaded && glbl.authenticated
 		? (
@@ -279,7 +297,7 @@ export default function Room() {
 								Speaker={true}
 								peer={pdc.dataConnection}
 								username={username}
-								mediaStream={pdc.mediaStream}
+								mediaStream={peerMediaInfo.find((pmi: PeerMediaStream) => pmi.name === pdc.name).mediaStream}
 							/>
 						))}
 					</div>
@@ -298,7 +316,6 @@ export default function Room() {
 								Speaker={false}
 								peer={pdc.dataConnection}
 								username={username}
-								mediaStream={pdc.mediaStream}
 							/>
 						))}
 					</div>
@@ -309,11 +326,11 @@ export default function Room() {
 							leave
 						</a>
 					</Link>
-					{isHost && msRef.current !== null
+					{isHost || micState
 						? (
 							<button
 								onClick={() => {
-									msRef.current?.getTracks().forEach((track: MediaStreamTrack) => track.enabled = !muteState);
+									msRef.current.getTracks().forEach((track: MediaStreamTrack) => track.enabled = !muteState ? false : true);
 									setMuteState((prevState) => !prevState);
 								}}
 								className='bg-black p-2 text-white rounded m-1 shadow shadow-black'
@@ -323,6 +340,7 @@ export default function Room() {
 						)
 						: null}
 					<button onClick={() => console.log(peerDataConnectionsRef.current)} className='bg-red-700 m-1'>dataConns</button>
+					<button onClick={() => console.log(msRef.current)} className='bg-red-700 m-1'>micStream</button>
 				</div>
 			</div>
 		)
