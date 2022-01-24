@@ -1,70 +1,18 @@
+import { truncate } from 'fs';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { DataConnection, MediaConnection } from 'peerjs';
-import { useContext, useEffect, useRef, useState } from 'react';
+import { MutableRefObject, useContext, useEffect, useRef, useState } from 'react';
 import { GLOBALS } from '../contexts/globals';
 
-// the function that gets returned from a useEffect function is that function
-// that cleans up the PREVIOUS effect
+// NOTE 1/21/2022 - I swapped to simple-peer. PeerJS is pretty much dead.
 
-// IMPORTANT NOTES
-// We use data connections for everything
-// which means that data connections represent the connections that should be connected
-// If a mediaConnection's peerid isn't in the dataconnections array, then we should disconnect it.
-
-// If we establish a mediaConnection that is one-sided, I don't think calling close on it does anything.
-// (the event is triggered for the user that is listening)
-// In other words, the event 'close' won't be called on one of the ends (speaker end). Our fix is to see what mediaConnections are not
-// present as a dataConnection.
-
-// Host Controls
-// Mute people, Move people on/off stage, end the room, maybe ban people?
-// For moving people on/off stage, we can just generalize those commands as muting and unmuting people as a host
-
-// for some reason, if I change a state object and return a copy of that exact same object, I get duplicates
-// my guess is that React, combines changes.
-// After checking, my guess is right. React merges state changes.
-
-// How I separate speakers and listeners
-// The way I separate speakers from listeners is by peerjs not keeping/storing a mediaConnection for one-sided calls for speakers,
-// because the call.on('stream') event is never triggered because the person picking up never provides a stream (hence, one-sided)
-
-// How our room works
-// There are speakers and listeners.
-// One host gets to decide who gets to talk and who doesn't.
-// Speakers and listeners store dataConnections for everyone.
-// Only listeners store one-sided mediaConnections.
-// Speakers have to store every mediaConnection they have that isn't one-sided.
-// When the host moves a listener to a speaker position, the listener needs to call everyone in the room (speakers and listeners).
-// -- I don't want duplicate mediaConnections for the same callee, so I make the listener-to-speaker close every mediaConnection before calling everybody.
-// -- All of the speakers that are getting called by the listener-to-speaker shouldn't have duplicate mediaConnections (or already existing mediaConnections) for the
-// -- listener-to-speaker user. All of the listeners shouldn't either because they only have mediaConnections stored for the speakers.
-// When the host moves a speaker to a listender position, I also close every mediaConnection, which makes every speaker recall the speaker-to-listener. Assuming
-// -- that the speaker's close event triggers. But it doesn't for some reason (I think this is a peerjs problem). So my fix is to send a message in the data Channel to
-// -- close the media connections.
-
-interface DataChannelDataType {
-	type: string;
-	name?: string;
-}
-
-interface PeerDataConnection {
+interface DataConnection {
 	name: string;
-	dataConnection: DataConnection;
+	dataConnection: any;
+	mediaStream: any;
 }
 
-interface PeerMediaConnection {
-	name: string;
-	mediaStream: MediaStream;
-	mediaConnection: MediaConnection;
-}
-
-interface Message {
-	type: string;
-	user: string;
-}
-
-let Roomer = ({ name, RoomTalker, isHost, setMessage, username, mediaStream = null }) => {
+let Roomer = ({ name, isHost, Speaker, peer, username, mediaStream = null }) => {
 	let [audio, setAudio] = useState(new Audio());
 	useEffect(() => {
 		audio.autoplay = true;
@@ -79,11 +27,10 @@ let Roomer = ({ name, RoomTalker, isHost, setMessage, username, mediaStream = nu
 					<button
 						className='bg-black p-2 text-white rounded'
 						onClick={() => {
-							// this sets the message so that the host sends it to the appropriate user so they change their mediaStream (micStateForNonHost)
-							setMessage({ type: 'change', user: name });
+							peer.send(Speaker ? '0' : '1');
 						}}
 					>
-						{RoomTalker ? 'no talk' : 'allow talk'}
+						{Speaker ? 'no talk' : 'allow talk'}
 					</button>
 				)
 				: null}
@@ -91,331 +38,58 @@ let Roomer = ({ name, RoomTalker, isHost, setMessage, username, mediaStream = nu
 	);
 };
 
-let useConnect = (myPeerID: string) => {
+let useConnect = () => {
 	let router = useRouter();
-	let [peerIDs, setPeerIDs] = useState([]);
 	let [username, setUsername] = useState('');
 	let [HostUsername, setHostUsername] = useState('');
 	useEffect(() => {
-		if (myPeerID.length > 0) {
-			let { room } = router.query;
-			fetch('/api/joinroom', {
-				method: 'POST',
-				body: JSON.stringify({
-					roomid: room,
-					peerid: myPeerID,
-				}),
-			}).then(async (res) => {
-				if (res.ok) {
-					let { peerIDsDB, usernameDB, HostUsernameDB } = await res.json();
-					setPeerIDs(peerIDsDB);
-					setUsername(usernameDB);
-					setHostUsername(HostUsernameDB);
-				} else {
-					router.push('/home');
-				}
-			});
-		}
-	}, [myPeerID]);
-	return { peerIDs: peerIDs, username: username, HostUsername: HostUsername };
+		let { room } = router.query;
+		fetch('/api/joinroom', {
+			method: 'POST',
+			body: JSON.stringify({
+				roomid: room,
+			}),
+		}).then(async (res) => {
+			if (res.ok) {
+				let { usernameDB, HostUsernameDB } = await res.json();
+				setUsername(usernameDB);
+				setHostUsername(HostUsernameDB);
+			} else {
+				router.push('/home');
+			}
+		});
+	}, []);
+	return { username: username, HostUsername: HostUsername };
 };
 
 export default function Room() {
+	let router = useRouter();
 	let glbl = useContext(GLOBALS);
-	let [myPeerID, setMyPeerID] = useState('');
-	let [isHost, setIsHost] = useState(false);
-	let { peerIDs, username, HostUsername } = useConnect(myPeerID);
+	let [isHost, setisHost] = useState(false);
+	let [isSpeaker, setisSpeaker] = useState(false);
+	let { username, HostUsername } = useConnect();
 	let [Loaded, setLoaded] = useState(false);
-	let [_MEDIA_STREAM_, setMediaStream]: [MediaStream, any] = useState(null);
-	let [micStateForNonHost, setMicState] = useState(false);
-	let [peerDataConnections, setPeerDataConnections]: [
-		Array<PeerDataConnection>,
-		any,
-	] = useState([]);
-	let [peerMediaConnections, setPeerMediaConnections]: [
-		Array<PeerMediaConnection>,
-		any,
-	] = useState([]);
-	let [message, setMessage]: [Message, any] = useState(null);
+	let [peerDataConnections, setPeerDataConnections]: [Array<DataConnection>, any] = useState([]);
+	let [speakers, setSpeakers]: [Array<DataConnection>, any] = useState([]);
+	let [listeners, setListeners]: [Array<DataConnection>, any] = useState([]);
 	let [userSearch, setUserSearch]: [string, any] = useState('');
 	let [muteState, setMuteState] = useState(false);
-	let msRef = useRef(_MEDIA_STREAM_);
-	let peerRef = useRef(glbl.Peer);
+	let [micState, setMicState] = useState(false);
+	let msRef: MutableRefObject<MediaStream> = useRef(null);
+	let peerRef = useRef(null);
+	let socketRef = useRef(null);
 	let peerDataConnectionsRef = useRef(peerDataConnections);
-	let peerMediaConnectionsRef = useRef(peerMediaConnections);
 
-	// effect is for cleaning up...
+	// effect is for cleaning up
 	useEffect(() => {
 		// cleans up after the component unmounts
 		return () => {
 			msRef.current
 				?.getTracks()
 				.forEach((track: MediaStreamTrack) => track.stop());
-			peerDataConnectionsRef.current.forEach((connection: PeerDataConnection) => connection.dataConnection.close());
-			peerMediaConnectionsRef.current.forEach(
-				(connection: PeerMediaConnection) => connection.mediaConnection.close(),
-			);
-			peerRef.current.destroy();
-			glbl.setPeer(null);
+			socketRef.current?.disconnect();
 		};
 	}, []);
-
-	useEffect(() => {
-		if (myPeerID.length > 0 && username.length > 0 && HostUsername.length > 0 && peerIDs.length > 0) {
-			setLoaded(true);
-		}
-	}, [myPeerID, username, HostUsername, peerIDs]);
-
-	// when somebody joins a room, they need to initialize a peer object
-	useEffect(() => {
-		if (glbl.Peer === null) {
-			(async () => {
-				let P = new (await import('peerjs')).default({
-					debug: 1,
-				});
-				glbl.setPeer(P);
-				peerRef.current = P;
-				P.on('open', (id) => {
-					setMyPeerID(id);
-				});
-			})();
-		}
-	}, [glbl.Peer]);
-
-	// this effect is for users that join a room so that they establish the essential data connections that are required for our room thing to work
-	useEffect(() => {
-		if (
-			username.length > 0
-			&& peerIDs.length > 0
-			&& HostUsername.length > 0
-			&& myPeerID.length > 0
-		) {
-			if (username === HostUsername) {
-				setIsHost(true);
-			}
-
-			peerIDs.forEach((peerID) => {
-				if (peerID !== myPeerID && glbl.Peer !== null) {
-					let conn: DataConnection = glbl.Peer.connect(peerID);
-					if (conn === undefined) {
-						return;
-					}
-					conn.on('open', () => {
-						conn.on('data', (data: DataChannelDataType) => {
-							switch (data.type) {
-								case 'name':
-									{
-										setPeerDataConnections(
-											(prevPeerDataConnections: Array<PeerDataConnection>) => {
-												if (
-													prevPeerDataConnections.some(
-														(pdc: PeerDataConnection) => pdc.dataConnection.peer === conn.peer || pdc.name === data.name,
-													)
-												) {
-													return prevPeerDataConnections;
-												}
-												let newPeerDataConnections = [
-													...prevPeerDataConnections,
-													{
-														name: data.name,
-														dataConnection: conn,
-													},
-												];
-												peerDataConnectionsRef.current = newPeerDataConnections;
-												return newPeerDataConnections;
-											},
-										);
-									}
-									break;
-								case 'change':
-									{
-										setMicState((prevState) => !prevState);
-									}
-									break;
-								case 'close':
-									// this case should only be for closing mediaConnections
-									{
-										peerMediaConnectionsRef.current.forEach((pmc: PeerMediaConnection) => {
-											if (pmc.mediaConnection.peer === conn.peer) {
-												pmc.mediaConnection.close();
-											}
-										});
-									}
-									break;
-								default:
-									break;
-							}
-						});
-						conn.send({ type: 'name', name: username });
-					});
-					conn.on('error', (e) => {
-						console.error('conn error', e);
-					});
-					conn.on('close', () => {
-						setPeerDataConnections(
-							(prevPeerDataConnections: Array<PeerDataConnection>) => {
-								let filtered = prevPeerDataConnections.filter(
-									(pdc: PeerDataConnection) => pdc.dataConnection.peer !== conn.peer,
-								);
-								// we should close the mediaConnection if the corresponding dataConnection for the peer closes.
-								setPeerMediaConnections((prevPeerMediaConnections: Array<PeerMediaConnection>) => {
-									prevPeerMediaConnections.forEach((pmc: PeerMediaConnection) => {
-										if (pmc.mediaConnection.peer === conn.peer && pmc.mediaConnection.open) {
-											pmc.mediaConnection.close();
-										}
-									});
-									let filtered_media = prevPeerMediaConnections.filter(
-										(pmc: PeerMediaConnection) =>
-											filtered.some(
-												(pdc: PeerDataConnection) => pdc.dataConnection.peer === pmc.mediaConnection.peer,
-											),
-									);
-									peerMediaConnectionsRef.current = filtered_media;
-									return filtered_media;
-								});
-								peerDataConnectionsRef.current = filtered;
-								return filtered;
-							},
-						);
-					});
-				}
-			});
-		}
-	}, [peerIDs, HostUsername, username, myPeerID, glbl.Peer]);
-
-	// this effect is just to set the 'reaction' events for everyone. if they get called, they pick up the call, etc. same thing for data connections
-	useEffect(() => {
-		if (username.length > 0 && HostUsername.length > 0 && myPeerID.length > 0 && glbl.Peer !== null) {
-			glbl.Peer.on('call', (call: MediaConnection) => {
-				call.on('error', (e) => {
-					console.error('call ERROR', e);
-				});
-				// will there ever be a case where the wrong condition route gets evaluated?
-				// The only time msRef changes is when the host joins a room or a user is given permission to talk by the host.
-				// the only time this 'call' event gets triggered is when a user is given permission to talk by the host.
-				// will this 'call' event trigger at the same time as msRef changes? I am guessing no because whenever someone's mediaStream
-				// changes, they will be the one calling. Not getting called.
-				if (msRef.current !== null) {
-					call.answer(msRef.current);
-				} else {
-					call.answer();
-				}
-				console.log('somebody called me');
-				call.on('stream', (remoteStream: MediaStream) => {
-					setPeerMediaConnections(
-						(prevPeerMediaConnections: Array<PeerMediaConnection>) => {
-							let newPeerMediaConnections = [...prevPeerMediaConnections];
-							let newMediaConnection: PeerMediaConnection = {
-								name: null,
-								mediaStream: remoteStream,
-								mediaConnection: call,
-							};
-							peerDataConnectionsRef.current.forEach((pdc: PeerDataConnection) => {
-								if (pdc.dataConnection.peer === call.peer) {
-									newMediaConnection.name = pdc.name;
-								}
-							});
-							newPeerMediaConnections.push(newMediaConnection);
-							peerMediaConnectionsRef.current = newPeerMediaConnections;
-							return newPeerMediaConnections;
-						},
-					);
-					console.log('open?', call.open);
-				});
-				call.on('close', () => {
-					console.log('call closed0', call.peer);
-					// this part is for when a nonhost who WAS allowed to talk, is turned into a listener
-					// This part recalls them (on the speakers side), so that they can still hear all the speakers.
-					// This gets triggered when the person turning into a listener, closes all of their mediaConnections
-					// NOTE that this SHOULD be a one-sided call which is why it isn't added to the peerMediaConnections array.
-					if (msRef.current !== null) {
-						let recall = glbl.Peer.call(call.peer, msRef.current);
-						setPeerMediaConnections((prevPeerMediaConnections: Array<PeerMediaConnection>) => {
-							return prevPeerMediaConnections.filter((pmc: PeerMediaConnection) => pmc.mediaConnection.peer !== recall.peer);
-						});
-					}
-				});
-			});
-
-			glbl.Peer.on('connection', (conn: DataConnection) => {
-				conn.on('open', () => {
-					conn.on('data', (data: DataChannelDataType) => {
-						switch (data.type) {
-							case 'name':
-								{
-									setPeerDataConnections(
-										(prevPeerDataConnections: Array<PeerDataConnection>) => {
-											if (
-												prevPeerDataConnections.some(
-													(dc: PeerDataConnection) => dc.dataConnection.peer === conn.peer || dc.name === data.name,
-												)
-											) {
-												return prevPeerDataConnections;
-											}
-											let newPeerChannels = [
-												...prevPeerDataConnections,
-												{ name: data.name, dataConnection: conn },
-											];
-											peerDataConnectionsRef.current = newPeerChannels;
-											return newPeerChannels;
-										},
-									);
-								}
-								break;
-							case 'change':
-								{
-									setMicState((prevState) => !prevState);
-								}
-								break;
-							case 'close':
-								// this case should only be for closing mediaConnections
-								{
-									peerMediaConnectionsRef.current.forEach((pmc: PeerMediaConnection) => {
-										if (pmc.mediaConnection.peer === conn.peer) {
-											pmc.mediaConnection.close();
-										}
-									});
-								}
-								break;
-							default:
-								break;
-						}
-					});
-					conn.send({ type: 'name', name: username });
-				});
-				conn.on('error', (e) => {
-					console.error('conn error', e);
-				});
-				conn.on('close', () => {
-					setPeerDataConnections(
-						(prevPeerDataConnections: Array<PeerDataConnection>) => {
-							let filtered = prevPeerDataConnections.filter(
-								(pdc: PeerDataConnection) => pdc.dataConnection.peer !== conn.peer,
-							);
-							// we should close the mediaConnection if the corresponding dataConnection for the peer closes.
-							setPeerMediaConnections((prevPeerMediaConnections: Array<PeerMediaConnection>) => {
-								prevPeerMediaConnections.forEach((pmc: PeerMediaConnection) => {
-									if (pmc.mediaConnection.peer === conn.peer && pmc.mediaConnection.open) {
-										pmc.mediaConnection.close();
-									}
-								});
-								let filtered_media = prevPeerMediaConnections.filter(
-									(pmc: PeerMediaConnection) =>
-										filtered.some(
-											(pdc: PeerDataConnection) => pdc.dataConnection.peer === pmc.mediaConnection.peer,
-										),
-								);
-								peerMediaConnectionsRef.current = filtered_media;
-								return filtered_media;
-							});
-							peerDataConnectionsRef.current = filtered;
-							return filtered;
-						},
-					);
-				});
-			});
-		}
-	}, [username, HostUsername, myPeerID, glbl.Peer]);
 
 	useEffect(() => {
 		if (glbl.authenticated) {
@@ -423,122 +97,163 @@ export default function Room() {
 		}
 	}, [glbl.authenticated]);
 
-	// if the user is a host, we have to set their mic
+	// this effect is for seeing if a user is the host
 	useEffect(() => {
-		if (isHost) {
+		if (
+			username.length > 0
+			&& HostUsername.length > 0
+		) {
+			(async () => {
+				let { io } = await import('socket.io-client');
+				let socket = io('https://safe-retreat-90513.herokuapp.com/');
+				socketRef.current = socket;
+
+				let peer = (await import('simple-peer')).default;
+				peerRef.current = peer;
+
+				let { room } = router.query;
+				socket.emit('room', room, username);
+
+				// whenever a new socket joins a particular socket.io 'room'
+				// allowing 'trickle' to be true will make establishing data connections faster, but
+				// I will work on that later...
+				socket.on('newJoin', (socketid, peername) => {
+					let newPeer = new peer(
+						msRef.current
+							? { initiator: true, trickle: false, stream: msRef.current }
+							: { initiator: true, trickle: false },
+					);
+					newPeer.on('signal', data => {
+						socket.emit('data', data, socketid);
+					});
+					newPeer.on('data', data => {
+						if (data === '0') {
+							setMicState(false);
+						} else if (data === '1') {
+							setMicState(true);
+						} else if (data === 'closeStream') {
+							setPeerDataConnections((prevDataConns: Array<DataConnection>) => [...prevDataConns]);
+						}
+					});
+					newPeer.on('stream', stream => {
+						// we do this just in case the peerDataConnections isn't updated in time. React might decide to not update that
+						// array right away.
+						setPeerDataConnections((prevDataConns: Array<DataConnection>) => {
+							let fResult = prevDataConns.find((pdc: DataConnection) => pdc.name === peername);
+							if (fResult === undefined) {
+								let newDataConn: DataConnection = {
+									name: peername,
+									dataConnection: newPeer,
+									mediaStream: stream,
+								};
+								let newDataConns: Array<DataConnection> = [...prevDataConns, newDataConn];
+								peerDataConnectionsRef.current = newDataConns;
+								return newDataConns;
+							} else {
+								let newDataConns: Array<DataConnection> = [...prevDataConns];
+								let fIndex = prevDataConns.findIndex((pdc: DataConnection) => pdc.name === peername);
+								newDataConns[fIndex].mediaStream = stream;
+								peerDataConnectionsRef.current = newDataConns;
+								return newDataConns;
+							}
+						});
+					});
+					let DataConnObject: DataConnection = {
+						name: peername,
+						dataConnection: newPeer,
+						mediaStream: null,
+					};
+					newPeer.on('connect', () => {
+						setPeerDataConnections((prevDataConns: Array<DataConnection>) => {
+							let newDataConns: Array<DataConnection> = [...prevDataConns, DataConnObject];
+							peerDataConnectionsRef.current = newDataConns;
+							return newDataConns;
+						});
+					});
+				});
+
+				// this is the data required for establishing a p2p connection.
+				socket.on('dataConnect', (data, peername) => {
+					let newPeer = new peer(msRef.current ? { trickle: false, stream: msRef.current } : { trickle: false });
+					newPeer.signal(data);
+					newPeer.on('data', (data) => {
+						if (data === '0') {
+							setMicState(false);
+						} else if (data === '1') {
+							setMicState(true);
+						} else if (data === 'closeStream') {
+							setPeerDataConnections((prevDataConns: Array<DataConnection>) => [...prevDataConns]);
+						}
+					});
+					newPeer.on('stream', stream => {
+						// we do this just in case the peerDataConnections isn't updated in time. React might decide to not update that
+						// array right away.
+						setPeerDataConnections((prevDataConns: Array<DataConnection>) => {
+							let fResult = prevDataConns.find((pdc: DataConnection) => pdc.name === peername);
+							if (fResult === undefined) {
+								let newDataConn: DataConnection = {
+									name: peername,
+									dataConnection: newPeer,
+									mediaStream: stream,
+								};
+								let newDataConns: Array<DataConnection> = [...prevDataConns, newDataConn];
+								peerDataConnectionsRef.current = newDataConns;
+								return newDataConns;
+							} else {
+								let newDataConns: Array<DataConnection> = [...prevDataConns];
+								let fIndex = prevDataConns.findIndex((pdc: DataConnection) => pdc.name === peername);
+								newDataConns[fIndex].mediaStream = stream;
+								peerDataConnectionsRef.current = newDataConns;
+								return newDataConns;
+							}
+						});
+					});
+					let DataConnObject: DataConnection = {
+						name: peername,
+						dataConnection: newPeer,
+						mediaStream: null,
+					};
+					newPeer.on('connect', () => {
+						setPeerDataConnections((prevDataConns: Array<DataConnection>) => {
+							let newDataConns: Array<DataConnection> = [...prevDataConns, DataConnObject];
+							peerDataConnectionsRef.current = newDataConns;
+							return newDataConns;
+						});
+					});
+				});
+				if (username === HostUsername) {
+					setisHost(true);
+				}
+				setLoaded(true);
+			})();
+		}
+	}, [HostUsername, username]);
+
+	// whenever the peerDataConnections array updates, this effect runs to split the connections up between who can talk ( has a mediaStream ) and 
+	// those that cannot
+	useEffect(() => {
+		setSpeakers(peerDataConnections.filter((pdc: DataConnection) => pdc.mediaStream !== null));
+		setListeners(peerDataConnections.filter((pdc: DataConnection) => pdc.mediaStream === null));
+	}, [peerDataConnections]);
+
+	// if the user is a host or if the host has allowed a user to talk, we set their mic.
+	useEffect(() => {
+		if (isHost || micState) {
 			navigator.mediaDevices
 				.getUserMedia({ audio: true })
 				.then((micMediaStream) => {
-					setMediaStream(micMediaStream);
+					msRef.current = micMediaStream;
+					peerDataConnectionsRef.current.forEach((pdc: DataConnection) => pdc.dataConnection.addStream(msRef.current));
 				});
-		}
-	}, [isHost]);
-
-	// effect is for sending messages. ONLY FOR HOSTS
-	useEffect(() => {
-		if (message !== null && isHost) {
-			let user_conn = peerDataConnectionsRef.current.find((pdc: PeerDataConnection) => pdc.name === message.user);
-			if (user_conn !== undefined) {
-				user_conn.dataConnection.send({ type: message.type });
-			}
-		}
-	}, [message, isHost]);
-
-	// effect is for users that are turned into speakers by the host.
-	useEffect(() => {
-		// the reason why I close all the mediaConnections is because I don't want duplicates of mediaConnections for the same pairs of peers.
-		// changing the mediaStream, causes an effect to run where the current user calls every dataconnection they have.
-		if (micStateForNonHost) {
-			peerMediaConnectionsRef.current.forEach((pmc: PeerMediaConnection) => pmc.mediaConnection.close());
-			navigator.mediaDevices.getUserMedia({ audio: true }).then(ms => {
-				setMediaStream(ms);
-			});
 		} else {
-			msRef.current?.getTracks().forEach(track => track.stop());
-			setMediaStream(null);
+			if (msRef.current !== null) {
+				peerDataConnectionsRef.current.forEach((pdc: DataConnection) => pdc.dataConnection.removeStream(msRef.current));
+				peerDataConnectionsRef.current.forEach((pdc: DataConnection) => pdc.dataConnection.send('closeStream'));
+			}
+			msRef.current?.getTracks().forEach((track: MediaStreamTrack) => track.stop());
 			msRef.current = null;
-			peerMediaConnectionsRef.current.forEach((pmc: PeerMediaConnection) => pmc.mediaConnection.close());
-			peerDataConnectionsRef.current.forEach((pdc: PeerDataConnection) => {
-				if (
-					peerMediaConnectionsRef.current.some((pmc: PeerMediaConnection) =>
-						pmc.mediaConnection.peer === pdc.dataConnection.peer
-					)
-				) {
-					pdc.dataConnection.send({ type: 'close' });
-				}
-			});
 		}
-	}, [micStateForNonHost]);
-
-	// effect is for host or anyone who is supposed to talk (be a speaker).
-	// effect runs when a new dataconnection connects or when the mediaStream changes
-	useEffect(() => {
-		if (
-			_MEDIA_STREAM_ !== null
-			&& myPeerID.length > 0
-			&& username.length > 0
-		) {
-			console.log('in the effect for speakers');
-			msRef.current = _MEDIA_STREAM_;
-			[
-				...peerDataConnections.map(
-					(pdc: PeerDataConnection) => pdc.dataConnection.peer,
-				),
-			].forEach((peerid) => {
-				if (
-					peerid !== myPeerID && peerDataConnections.some((pdc: PeerDataConnection) => pdc.dataConnection.peer === peerid)
-					&& glbl.Peer !== null
-				) {
-					let call: MediaConnection = glbl.Peer.call(peerid, _MEDIA_STREAM_);
-					if (call === undefined) {
-						return;
-					}
-					call.on('error', (e) => {
-						console.error('call error', e);
-					});
-					call.on('stream', (remoteStream: MediaStream) => {
-						setPeerMediaConnections(
-							(prevPeerMediaConnections: Array<PeerMediaConnection>) => {
-								let newPeerMediaConnections = [...prevPeerMediaConnections];
-								let newMediaConnection: PeerMediaConnection = {
-									name: null,
-									mediaStream: remoteStream,
-									mediaConnection: call,
-								};
-								peerDataConnections.forEach((pdc: PeerDataConnection) => {
-									if (pdc.dataConnection.peer === call.peer) {
-										newMediaConnection.name = pdc.name;
-									}
-								});
-								newPeerMediaConnections.push(newMediaConnection);
-								peerMediaConnectionsRef.current = newPeerMediaConnections;
-								return newPeerMediaConnections;
-							},
-						);
-						console.log('stream added');
-					});
-					call.on('close', () => {
-						console.log('call closed1', call.peer);
-						// this part is for when a nonhost who WAS allowed to talk, is turned into a listener
-						// This part recalls them, so that they can still hear all the speakers.
-						// This gets triggered when the person turning into a listener, closes all of their mediaConnections
-						// NOTE that this SHOULD be a one-sided call which is why it isn't added to the peerMediaConnections array.
-						if (msRef.current !== null) {
-							let recall = glbl.Peer.call(call.peer, msRef.current);
-							setPeerMediaConnections((prevPeerMediaConnections: Array<PeerMediaConnection>) => {
-								return prevPeerMediaConnections.filter((pmc: PeerMediaConnection) => pmc.mediaConnection.peer !== recall.peer);
-							});
-						}
-					});
-				}
-			});
-		}
-	}, [
-		_MEDIA_STREAM_,
-		myPeerID,
-		username,
-		peerDataConnections,
-	]);
+	}, [isHost, micState]);
 
 	return Loaded && glbl.authenticated
 		? (
@@ -553,72 +268,39 @@ export default function Room() {
 						value={userSearch}
 					/>
 					<div className='overflow-y-auto w-full flex flex-wrap'>
-						{(isHost || micStateForNonHost)
-							? (
-								<Roomer
-									key={username}
-									name={username}
-									mediaStream={null}
-									RoomTalker={true}
-									isHost={isHost}
-									setMessage={setMessage}
-									username={username}
-								/>
-							)
+						{isHost || isSpeaker
+							? <Roomer key={username} name={username} isHost={isHost} Speaker={false} peer={null} username={username} />
 							: null}
-						{peerMediaConnections.map((pmc: PeerMediaConnection) =>
-							(pmc.name === username || (pmc.mediaConnection.open
-									&& peerDataConnections.some((pdc: PeerDataConnection) => pdc.name === pmc.name)))
-								&& (userSearch.length === 0 || (userSearch.length > 0 && pmc.name.includes(userSearch)))
-								? (
-									<Roomer
-										key={pmc.name}
-										name={pmc.name}
-										mediaStream={pmc.mediaStream}
-										RoomTalker={true}
-										isHost={isHost}
-										setMessage={setMessage}
-										username={username}
-									/>
-								)
-								: null
-						)}
+						{speakers.map((pdc: DataConnection) => (
+							<Roomer
+								key={pdc.name}
+								name={pdc.name}
+								isHost={isHost}
+								Speaker={true}
+								peer={pdc.dataConnection}
+								username={username}
+								mediaStream={pdc.mediaStream}
+							/>
+						))}
 					</div>
 				</div>
 				<div className='h-full w-5/6 md:w-1/2'>
 					<h2 className='text-xl font-bold text-center dark:text-white'>listeners</h2>
 					<div className='overflow-y-auto w-full flex flex-wrap'>
-						{!isHost && !micStateForNonHost
-							? (
-								<Roomer
-									key={username}
-									name={username}
-									mediaStream={null}
-									RoomTalker={false}
-									isHost={isHost}
-									setMessage={setMessage}
-									username={username}
-								/>
-							)
+						{!isHost && !isSpeaker
+							? <Roomer key={username} name={username} isHost={isHost} Speaker={false} peer={null} username={username} />
 							: null}
-						{peerDataConnections.map((pdc: PeerDataConnection) =>
-							((pdc.name === username || pdc.dataConnection.open)
-									&& !peerMediaConnections.some(
-										(pmc: PeerMediaConnection) => pmc.name === pdc.name,
-									))
-								&& (userSearch.length === 0 || (userSearch.length > 0 && pdc.name.includes(userSearch)))
-								? (
-									<Roomer
-										key={pdc.name}
-										name={pdc.name}
-										RoomTalker={false}
-										isHost={isHost}
-										setMessage={setMessage}
-										username={username}
-									/>
-								)
-								: null
-						)}
+						{listeners.map((pdc: DataConnection) => (
+							<Roomer
+								key={pdc.name}
+								name={pdc.name}
+								isHost={isHost}
+								Speaker={false}
+								peer={pdc.dataConnection}
+								username={username}
+								mediaStream={pdc.mediaStream}
+							/>
+						))}
 					</div>
 				</div>
 				<div className='fixed bottom-0 w-full flex justify-center'>
@@ -627,11 +309,11 @@ export default function Room() {
 							leave
 						</a>
 					</Link>
-					{(micStateForNonHost || isHost) && _MEDIA_STREAM_ !== null
+					{isHost && msRef.current !== null
 						? (
 							<button
 								onClick={() => {
-									_MEDIA_STREAM_.getTracks().forEach((track: MediaStreamTrack) => track.enabled = !muteState);
+									msRef.current?.getTracks().forEach((track: MediaStreamTrack) => track.enabled = !muteState);
 									setMuteState((prevState) => !prevState);
 								}}
 								className='bg-black p-2 text-white rounded m-1 shadow shadow-black'
@@ -640,8 +322,13 @@ export default function Room() {
 							</button>
 						)
 						: null}
+					<button onClick={() => console.log(peerDataConnectionsRef.current)} className='bg-red-700 m-1'>dataConns</button>
 				</div>
 			</div>
 		)
-		: <div className='h-full w-full flex justify-center items-center text-2xl font-medium'>Loading...</div>;
+		: (
+			<div className='h-full w-full flex justify-center items-center text-2xl font-medium dark:bg-slate-600 dark:text-white'>
+				Loading...
+			</div>
+		);
 }

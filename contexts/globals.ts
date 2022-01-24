@@ -4,8 +4,6 @@ let globals = {
 	in_room: false,
 	setAuthenticated: (state) => {},
 	setInRoom: (state) => {},
-	Peer: null,
-	setPeer: (state) => {},
 	colorMode: null,
 	setColorMode: (state) => {},
 };

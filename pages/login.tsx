@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { useContext, useState, useEffect } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { GLOBALS } from '../contexts/globals';
 export default function Login() {
 	let router = useRouter();

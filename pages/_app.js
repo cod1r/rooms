@@ -7,7 +7,6 @@ function MyApp({ Component, pageProps }) {
 	let [authenticated, setAuthenticated] = useState(false);
 	let [in_room, setInRoom] = useState(false);
 	let [loaded, setLoaded] = useState(false);
-	let [peer, setPeer] = useState(null);
 	let [colorMode, setColorMode] = useState(null);
 	let colorRef = useRef();
 	useEffect(() => {
@@ -47,7 +46,7 @@ function MyApp({ Component, pageProps }) {
 			// tries both because I don't want to store previous colorMode
 			if (colorRef.current.classList.contains('dark') && colorMode === 'light') {
 				colorRef.current.classList.remove('dark');
-			} else {
+			} else if (colorMode === 'dark') {
 				colorRef.current.classList.add('dark');
 			}
 		} else if (colorMode === null) {
@@ -67,8 +66,6 @@ function MyApp({ Component, pageProps }) {
 				in_room: in_room,
 				setAuthenticated: (state) => setAuthenticated(state),
 				setInRoom: (state) => setInRoom(state),
-				Peer: peer,
-				setPeer: (state) => setPeer(state),
 				colorMode: colorMode,
 				setColorMode: (state) => setColorMode(state),
 			}}

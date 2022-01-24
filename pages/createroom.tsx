@@ -60,6 +60,7 @@ let CreateRoom = () => {
 				>
 					create room
 				</button>
+				<div className='w-full break-words text-center dark:text-white'>{errorMsg}</div>
 			</form>
 		</div>
 	);

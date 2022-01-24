@@ -35,60 +35,23 @@ export default function joinroom(req: NextApiRequest, res: NextApiResponse) {
 						GetItemResponse.$metadata.httpStatusCode === 200
 						&& GetItemResponse.Item !== undefined
 					) {
-						let QueryResponse = await client.send(
-							new QueryCommand({
-								IndexName: 'RoomID-index',
-								KeyConditionExpression: 'RoomID = :val',
-								ExpressionAttributeValues: {
-									':val': {
-										S: body.roomid,
+						let GetUserResponse = await client.send(
+							new GetItemCommand({
+								Key: {
+									UserID: {
+										S: GetItemResponse.Item.HostID.S,
 									},
 								},
-								TableName: 'UsersInRooms',
+								TableName: 'Users',
 							}),
 						);
-						if (QueryResponse.$metadata.httpStatusCode === 200) {
-							let PutItemResponse = await client.send(
-								new PutItemCommand({
-									Item: {
-										RoomID: {
-											S: body.roomid,
-										},
-										UserID: {
-											S: decoded.uid,
-										},
-										PeerID: {
-											S: body.peerid,
-										},
-									},
-									TableName: 'UsersInRooms',
-								}),
-							);
-							if (PutItemResponse.$metadata.httpStatusCode === 200) {
-								let GetUserResponse = await client.send(
-									new GetItemCommand({
-										Key: {
-											UserID: {
-												S: GetItemResponse.Item.HostID.S,
-											},
-										},
-										TableName: 'Users',
-									}),
-								);
-								if (GetUserResponse.$metadata.httpStatusCode === 200 && GetUserResponse.Item !== undefined) {
-									res.status(200).send({
-										peerIDsDB: QueryResponse.Items.map((item) => item.PeerID.S),
-										usernameDB: decoded.username,
-										HostUsernameDB: GetUserResponse.Item.Username.S,
-									});
-								} else {
-									res.status(500).send({});
-								}
-							} else {
-								res.status(500).send({});
-							}
+						if (GetUserResponse.$metadata.httpStatusCode === 200 && GetUserResponse.Item !== undefined) {
+							res.status(200).send({
+								usernameDB: decoded.username,
+								HostUsernameDB: GetUserResponse.Item.Username.S,
+							});
 						} else {
-							res.status(401).send({});
+							res.status(500).send({});
 						}
 					} else {
 						res.status(401).send({});
