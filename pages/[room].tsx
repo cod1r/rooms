@@ -413,8 +413,8 @@ export default function Room() {
 							</button>
 						)
 						: null}
-					<button onClick={() => console.log(peerDataConnections)} className='bg-red-700 m-1'>dataConns</button>
-					<button onClick={() => console.log(peerMediaInfo)} className='bg-red-700 m-1'>mediaInfo</button>
+					{/* <button onClick={() => console.log(peerDataConnections)} className='bg-red-700 m-1'>dataConns</button>
+					<button onClick={() => console.log(peerMediaInfo)} className='bg-red-700 m-1'>mediaInfo</button> */}
 				</div>
 			</div>
 		)
