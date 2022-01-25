@@ -1,0 +1,3 @@
+[submodule "signalingserver-rooms"]
+	path = signalingserver-rooms
+	url = git@github.com:cod1r/signalingserver-rooms.git
