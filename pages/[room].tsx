@@ -342,6 +342,7 @@ export default function Room() {
 					(pdc: DataConnection) => pdc.dataConnection.send('closeStream'),
 				);
 			}
+			msRef.current.getTracks().forEach((track: MediaStreamTrack) => track.stop());
 			setisSpeaker(false);
 			msRef.current = null;
 		}
