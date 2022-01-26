@@ -319,6 +319,7 @@ export default function Room() {
 					peerDataConnectionsRef.current.forEach(
 						(pdc: DataConnection) => pdc.dataConnection.addStream(ms),
 					);
+					setMicState(true);
 				});
 		}
 	}, [isHost]);
@@ -332,6 +333,7 @@ export default function Room() {
 						(pdc: DataConnection) => pdc.dataConnection.addStream(ms),
 					);
 					setisSpeaker(true);
+					setMicState(true);
 				});
 		} else {
 			if (msRef.current) {
@@ -344,6 +346,7 @@ export default function Room() {
 			}
 			msRef.current.getTracks().forEach((track: MediaStreamTrack) => track.stop());
 			setisSpeaker(false);
+			setMicState(false);
 			msRef.current = null;
 		}
 	}, [nonHostMicState]);
@@ -364,7 +367,7 @@ export default function Room() {
 						{isHost || isSpeaker
 							? <Roomer key={username} name={username} isHost={isHost} Speaker={false} peer={null} username={username} />
 							: null}
-						{speakers.map((pdc: DataConnection) => (
+						{userSearch.length === 0 ? speakers.map((pdc: DataConnection) => (
 							<Roomer
 								key={pdc.name}
 								name={pdc.name}
@@ -374,7 +377,16 @@ export default function Room() {
 								username={username}
 								mediaStream={peerMediaInfo.find((pmi: PeerMediaStream) => pmi.name === pdc.name)?.mediaStream}
 							/>
-						))}
+						)) : speakers.filter((pdc: DataConnection) => pdc.name.includes(userSearch)).map((pdc: DataConnection) => (
+							<Roomer
+								key={pdc.name}
+								name={pdc.name}
+								isHost={isHost}
+								Speaker={true}
+								peer={pdc.dataConnection}
+								username={username}
+								mediaStream={peerMediaInfo.find((pmi: PeerMediaStream) => pmi.name === pdc.name)?.mediaStream}
+							/>))}
 					</div>
 				</div>
 				<div className='h-full w-5/6 md:w-1/2'>
@@ -383,7 +395,7 @@ export default function Room() {
 						{!isHost && !isSpeaker
 							? <Roomer key={username} name={username} isHost={isHost} Speaker={false} peer={null} username={username} />
 							: null}
-						{listeners.map((pdc: DataConnection) => (
+						{userSearch.length === 0 ? listeners.map((pdc: DataConnection) => (
 							<Roomer
 								key={pdc.name}
 								name={pdc.name}
@@ -392,7 +404,15 @@ export default function Room() {
 								peer={pdc.dataConnection}
 								username={username}
 							/>
-						))}
+						)) : listeners.filter((pdc: DataConnection) => pdc.name.includes(userSearch)).map((pdc: DataConnection) => (
+							<Roomer
+								key={pdc.name}
+								name={pdc.name}
+								isHost={isHost}
+								Speaker={false}
+								peer={pdc.dataConnection}
+								username={username}
+							/>))}
 					</div>
 				</div>
 				<div className='fixed bottom-0 w-full flex justify-center'>
@@ -401,7 +421,7 @@ export default function Room() {
 							leave
 						</a>
 					</Link>
-					{isHost || micState
+					{micState
 						? (
 							<button
 								onClick={() => {
