@@ -31,7 +31,7 @@ let Roomer = ({ name, isHost, Speaker, peer, username, mediaStream = null }) => 
 		audio.srcObject = mediaStream;
 	}, [mediaStream, audio]);
 	return (
-		<div className='flex flex-col items-center shadow shadow-black m-1 rounded p-1 w-24'>
+		<div className='flex flex-col items-center shadow shadow-violet-800 m-1 rounded p-1 w-24'>
 			<div className='rounded-full bg-black w-16 h-16'></div>
 			<h3 className='text-ellipsis overflow-x-hidden w-full text-center dark:text-white'>{name}</h3>
 			{isHost && name !== username
@@ -335,25 +335,23 @@ export default function Room() {
 					setisSpeaker(true);
 					setMicState(true);
 				});
-		} else {
-			if (msRef.current) {
+		} else if (msRef.current) {
 				peerDataConnectionsRef.current.forEach(
 					(pdc: DataConnection) => pdc.dataConnection.removeStream(msRef.current),
 				);
 				peerDataConnectionsRef.current.forEach(
 					(pdc: DataConnection) => pdc.dataConnection.send('closeStream'),
 				);
-			}
-			msRef.current.getTracks().forEach((track: MediaStreamTrack) => track.stop());
-			setisSpeaker(false);
-			setMicState(false);
-			msRef.current = null;
+				msRef.current.getTracks().forEach((track: MediaStreamTrack) => track.stop());
+				setisSpeaker(false);
+				setMicState(false);
+				msRef.current = null;
 		}
 	}, [nonHostMicState]);
 
 	return Loaded && glbl.authenticated
 		? (
-			<div className='h-full w-full flex flex-col items-center dark:bg-slate-600'>
+			<div className='h-full w-full flex flex-col items-center dark:bg-slate-800'>
 				<div className='h-full w-5/6 md:w-1/2 border-b border-black'>
 					<h1 className='text-2xl font-bold text-center dark:text-white'>speakers</h1>
 					<input

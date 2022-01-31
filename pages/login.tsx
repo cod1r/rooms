@@ -1,20 +1,23 @@
 import { useRouter } from 'next/router';
 import { useContext, useEffect, useState } from 'react';
 import { GLOBALS } from '../contexts/globals';
+import { getStringLength } from '../utils/utils';
 export default function Login() {
 	let router = useRouter();
 	let [username, setUsername] = useState('');
 	let [password, setPassword] = useState('');
 	let [errorMsg, setError] = useState('');
 	let glbl = useContext(GLOBALS);
+
 	useEffect(() => {
 		if (glbl.authenticated) {
 			router.push('/home');
 		}
 	}, [glbl.authenticated]);
+
 	let submitHandler = (e) => {
 		e.preventDefault();
-		if (username.length === 0 || password.length === 0) {
+		if (getStringLength(username) === 0 || getStringLength(password) === 0) {
 			setError('some fields are empty');
 			return;
 		}
@@ -34,6 +37,7 @@ export default function Login() {
 			}
 		});
 	};
+	
 	return (
 		<div className='h-full w-full grid place-items-center'>
 			<form className='md:w-1/3 flex flex-col justify-center items-center md:shadow md:shadow-black rounded min-h-min'>

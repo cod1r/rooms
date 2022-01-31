@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router';
 import { useContext, useEffect, useState } from 'react';
 import { GLOBALS } from '../contexts/globals';
+import { getStringLength } from '../utils/utils';
 export default function Register() {
 	let router = useRouter();
 	let [username, setUsername] = useState('');
@@ -8,14 +9,16 @@ export default function Register() {
 	let [email, setEmail] = useState('');
 	let [errorMsg, setError] = useState('');
 	let glbl = useContext(GLOBALS);
+	
 	useEffect(() => {
 		if (glbl.authenticated) {
 			router.push('/home');
 		}
 	}, [glbl.authenticated]);
+
 	let submitHandler = (e) => {
 		e.preventDefault();
-		if (username.length < 5 || password.length < 8) {
+		if (getStringLength(username) < 5 || getStringLength(password) < 8) {
 			setError('username must be longer than 5 characters and password must be longer than 8');
 			return;
 		}

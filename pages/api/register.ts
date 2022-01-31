@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { v1 } from 'uuid';
 import { client } from '../../database/databaseinit';
+import { getStringLength } from '../../utils/utils';
 
 interface CredentialBody {
 	email: string;
@@ -13,7 +14,7 @@ interface CredentialBody {
 
 export default function register(req: NextApiRequest, res: NextApiResponse) {
 	let credentials: CredentialBody = JSON.parse(req.body);
-	if (credentials.username.length < 5 || credentials.password.length < 8) {
+	if (getStringLength(credentials?.username) < 5 || getStringLength(credentials?.password) < 8) {
 		res.status(401).send({
 			error: 'Usernames must be longer than 5 characters and password must be longer than 8.',
 		});

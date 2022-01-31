@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useContext, useEffect, useRef, useState } from 'react';
 import { GLOBALS } from '../contexts/globals';
@@ -69,7 +70,7 @@ export default function Profile() {
 	};
 
 	return (
-		<div className='overflow-y-auto h-full w-full flex flex-col items-center dark:bg-slate-600'>
+		<div className='overflow-y-auto h-full w-full flex flex-col items-center dark:bg-slate-800'>
 			<div className='text-2xl font-bold text-center flex justify-center m-1 dark:text-white'>
 				{username}
 			</div>
@@ -106,22 +107,21 @@ export default function Profile() {
 				</div>
 			</div>
 			<div className='text-xl font-bold border-b border-black w-5/6 text-center pb-2 dark:text-white'>My Rooms</div>
-			<ul className='overflow-y-auto md:w-1/3 w-full h-full rounded'>
+			<div className='h-full overflow-y-auto w-5/6'>
 				{rooms.map((room: RoomType) => (
-					<li key={room.id} className='text-center'>
-						<h1 className='text-lg font-bold dark:text-white'>{room.name}</h1>
-						<p className='dark:text-white'>{room.roomDescription}</p>
-						<button
-							className='bg-black p-2 m-1 text-white rounded shadow shadow-black'
-							onClick={() => {
-								router.push('/' + room.id);
-							}}
-						>
-							join
-						</button>
-					</li>
+					<div key={room.id} className='p-2 m-2 dark:bg-black flex justify-between'>
+						<div className='w-2/3'>
+							<h1 className='break-words overflow-x-hidden overflow-y-hidden text-ellipsis text-left text-3xl font-bold bg-gradient-to-r bg-clip-text text-transparent from-indigo-500 via-purple-500 to-pink-500'>
+								{room.name}
+							</h1>
+							<p className='text-black dark:text-white overflow-x-hidden text-ellipsis break-words'>{room.roomDescription}</p>
+						</div>
+						<Link href={'/' + room.id}>
+							<a className='bg-gradient-to-r from-green-400 to-blue-500 rounded text-white font-bold w-1/3 h-10 flex justify-center items-center'>join</a>
+						</Link>
+					</div>
 				))}
-			</ul>
+			</div>
 		</div>
 	);
 }

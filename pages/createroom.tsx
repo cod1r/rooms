@@ -1,6 +1,7 @@
 import router from 'next/router';
 import { useContext, useState } from 'react';
 import { GLOBALS } from '../contexts/globals';
+import { getStringLength } from '../utils/utils';
 
 let CreateRoom = () => {
 	let [roomname, setRoomName] = useState('');
@@ -8,7 +9,7 @@ let CreateRoom = () => {
 	let [errorMsg, setError] = useState('');
 	let glbl = useContext(GLOBALS);
 	return (
-		<div className='h-full w-full flex justify-center items-center dark:bg-slate-600'>
+		<div className='h-full w-full flex justify-center items-center dark:bg-slate-800'>
 			<form className='flex flex-col items-center justify-center w-5/6 h-full md:h-1/2 md:w-1/2 md:shadow md:shadow-black md:p-5 md:rounded'>
 				<label className='block font-bold dark:text-white' htmlFor='roomname'>The Room Name</label>
 				<input
@@ -37,7 +38,7 @@ let CreateRoom = () => {
 					className='p-2 m-1 bg-black text-white rounded shadow shadow-black'
 					onClick={(e) => {
 						e.preventDefault();
-						if (roomname.length < 10 || roomDesc.length < 20) {
+						if (getStringLength(roomname) < 10 || getStringLength(roomDesc) < 20) {
 							// TODO: tell user that they must make those lengths longer
 							setError('room name must be longer than 10 characters and room description must be longer than 20');
 							return;

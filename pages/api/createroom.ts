@@ -3,11 +3,18 @@ import jwt from 'jsonwebtoken';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { v1 } from 'uuid';
 import { client } from '../../database/databaseinit';
+import { getStringLength } from '../../utils/utils';
 
 export default function createroom(req: NextApiRequest, res: NextApiResponse) {
 	let cookies = req.cookies;
 	let token = cookies['rememberme'];
 	let body = JSON.parse(req.body);
+	if (getStringLength(body?.roomname) <= 10 || getStringLength(body?.roomdescription) <= 20) {
+		res.status(401).send({
+			error: 'room name must be longer than 10 characters and room description must be longer than 20'
+		});
+		return;
+	}
 	jwt.verify(token, process.env.private_key, (err, decoded) => {
 		if (err) {
 			console.log(err);
