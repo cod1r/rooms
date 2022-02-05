@@ -109,16 +109,35 @@ export default function Profile() {
 			<div className='text-xl font-bold border-b border-black w-5/6 text-center pb-2 dark:text-white'>My Rooms</div>
 			<div className='h-full overflow-y-auto w-5/6'>
 				{rooms.map((room: RoomType) => (
-					<div key={room.id} className='p-2 m-2 dark:bg-black flex justify-between'>
-						<div className='w-2/3'>
-							<h1 className='break-words overflow-x-hidden overflow-y-hidden text-ellipsis text-left text-3xl font-bold bg-gradient-to-r bg-clip-text text-transparent from-indigo-500 via-purple-500 to-pink-500'>
+					<div key={room.id} className='p-1 m-2 dark:bg-black flex justify-between'>
+						<div className='w-2/3 m-1'>
+							<h1 className='break-wordsoverflow-y-hidden text-ellipsis text-left text-3xl font-bold bg-gradient-to-r bg-clip-text text-transparent from-indigo-500 via-purple-500 to-pink-500'>
 								{room.name}
 							</h1>
-							<p className='text-black dark:text-white overflow-x-hidden text-ellipsis break-words'>{room.roomDescription}</p>
+							<p className='text-black dark:text-white overflow-y-auto text-ellipsis break-words h-16'>{room.roomDescription}</p>
 						</div>
-						<Link href={'/' + room.id}>
-							<a className='bg-gradient-to-r from-green-400 to-blue-500 rounded text-white font-bold w-1/3 h-10 flex justify-center items-center'>join</a>
-						</Link>
+						<div className='w-1/3 flex flex-col items-center justify-center'>
+							<Link href={'/' + room.id}>
+								<a className='m-1 bg-gradient-to-r from-green-400 to-blue-500 rounded text-white font-bold w-full h-10 flex justify-center items-center'>join</a>
+							</Link>
+							<button
+								onClick={() => {
+									fetch('/api/removeroom', {
+										method: 'POST',
+										body: JSON.stringify({
+											roomid: room.id
+										})
+									}).then(async (res) => {
+										if (res.ok) {
+											setRooms((rooms) => rooms.filter((room) => room.id !== room.id));
+										}
+									}).catch(e => console.error(e));
+								}}
+								className='m-1 bg-gradient-to-r from-green-400 to-blue-500 rounded text-white font-bold w-full h-10 flex justify-center items-center'>
+								delete
+							</button>
+						</div>
+						
 					</div>
 				))}
 			</div>

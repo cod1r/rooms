@@ -33,10 +33,10 @@ let Home = () => {
 				{rooms.map((room: RoomType) => (
 					<div key={room.id} className='p-2 m-2 dark:bg-black flex justify-between shadow shadow-violet-800'>
 						<div className='w-2/3'>
-							<h1 className='break-words overflow-x-hidden overflow-y-hidden text-ellipsis text-left text-3xl font-bold bg-gradient-to-r bg-clip-text text-transparent from-indigo-500 via-purple-500 to-pink-500'>
+							<h1 className='break-words text-ellipsis text-left text-3xl font-bold bg-gradient-to-r bg-clip-text text-transparent from-indigo-500 via-purple-500 to-pink-500'>
 								{room.name}
 							</h1>
-							<p className='text-black dark:text-white overflow-x-hidden text-ellipsis break-words'>{room.roomDescription}</p>
+							<p className='text-black dark:text-white text-ellipsis break-words h-16 overflow-y-auto'>{room.roomDescription}</p>
 						</div>
 						<Link href={'/' + room.id}>
 							<a className='bg-gradient-to-r from-green-400 to-blue-500 rounded text-white font-bold w-1/3 h-10 flex justify-center items-center'>join</a>

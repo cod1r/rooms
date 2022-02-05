@@ -10,10 +10,10 @@ interface CredentialBody {
 }
 
 export default function login(req: NextApiRequest, res: NextApiResponse) {
-	let credentials: CredentialBody = JSON.parse(req.body);
-	client
-		.send(
-			new QueryCommand({
+	(async () => {
+		let credentials: CredentialBody = JSON.parse(req.body);
+		try {
+			let queryResponse = await client.send(new QueryCommand({
 				IndexName: 'Username-index',
 				KeyConditionExpression: 'Username = :val',
 				ExpressionAttributeValues: {
@@ -22,16 +22,11 @@ export default function login(req: NextApiRequest, res: NextApiResponse) {
 					},
 				},
 				TableName: 'Users',
-			}),
-		)
-		.then((dbResponse) => {
-			if (
-				dbResponse['$metadata'].httpStatusCode === 200
-				&& dbResponse.Count > 0
-			) {
+			}));
+			if (queryResponse.$metadata.httpStatusCode === 200 && queryResponse.Count > 0) {
 				bcrypt.compare(
 					credentials.password,
-					dbResponse.Items[0].Password.S,
+					queryResponse.Items[0].Password.S,
 					(err, result) => {
 						if (err) {
 							console.error(err);
@@ -41,9 +36,9 @@ export default function login(req: NextApiRequest, res: NextApiResponse) {
 						if (result) {
 							jwt.sign(
 								{
-									uid: dbResponse.Items[0].UserID.S,
+									uid: queryResponse.Items[0].UserID.S,
 									username: credentials.username,
-									password: dbResponse.Items[0].Password.S,
+									password: queryResponse.Items[0].Password.S,
 								},
 								process.env.private_key,
 								(err, token) => {
@@ -66,16 +61,16 @@ export default function login(req: NextApiRequest, res: NextApiResponse) {
 						}
 					},
 				);
-			} else if (dbResponse.Count === 0) {
+			} else if (queryResponse.Count === 0) {
 				res.status(401).send({
 					error: 'username or password is incorrect.',
 				});
 			} else {
 				res.status(500).send({});
 			}
-		})
-		.catch((e) => {
-			console.error(e);
+		} catch (err) {
+			console.error(err);
 			res.status(500).send({});
-		});
+		}
+	})();
 }
