@@ -100,7 +100,7 @@ export default function Room() {
 		// cleans up after the component unmounts
 		return () => {
 			msRef.current
-				?.getTracks()
+				?.getAudioTracks()
 				.forEach((track: MediaStreamTrack) => track.stop());
 			socketRef.current.disconnect();
 			socketRef.current = null;
@@ -274,6 +274,7 @@ export default function Room() {
 									// peerConnectionBuffer.current = peerConnectionBuffer.current.filter(
 									// 	(peerConnection: DataConnection) => peerConnection.name !== peername,
 									// );
+									// -- update 06-06-22. it probably prevents the state update due to race conditions (ie if one event comes b4 the other)
 									let nArr = [..._, n];
 									peerDataConnectionsRef.current = nArr;
 									return nArr;
